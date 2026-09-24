@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>OKK Stores</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">OKK</div>
+    <h1>OKK Stores</h1>
+    <p class="login-sub">Plot 14 Keyo Road, Gulu City • Tel: 0772949121</p>
+    <label id="login-label">Enter Password<input type="password" id="login-pass" autofocus></label>
+    <label id="login-confirm-label" style="display:none;">Confirm Password<input type="password" id="login-pass2"></label>
+    <button id="btn-login" class="primary large">Sign In</button>
+    <p class="login-error" id="login-error"></p>
+  </div>
+</div>
+
+<div class="app hidden" id="app-root">
+  <aside class="sidebar">
+    <div class="brand"><div class="brand-mark">OKK</div><div class="brand-name">OKK Stores</div></div>
+    <nav>
+      <a href="#" data-view="dashboard" class="active">Dashboard</a>
+      <a href="#" data-view="products">Products</a>
+      <a href="#" data-view="customers">Customers</a>
+      <a href="#" data-view="sale">New Order</a>
+      <a href="#" data-view="orders">Orders / Receipts</a>
+      <a href="#" data-view="reports">Reports</a>
+    </nav>
+    <div class="logout-wrap"><button id="btn-logout" class="small">Log Out</button></div>
+  </aside>
+  <main class="content">
+    <section id="view-dashboard" class="view active">
+      <header class="view-header"><h1>Dashboard</h1><span class="date" id="today-date"></span></header>
+      <div class="widgets">
+        <div class="widget"><span class="label">Inventory Value</span><span id="stat-value" class="value">UGX 0</span></div>
+        <div class="widget"><span class="label">Potential Profit</span><span id="stat-profit" class="value">UGX 0</span></div>
+        <div class="widget"><span class="label">Products</span><span id="stat-products" class="value">0</span></div>
+        <div class="widget warn"><span class="label">Low Stock</span><span id="stat-lowstock" class="value">0</span></div>
+        <div class="widget"><span class="label">Today's Sales (paid)</span><span id="stat-sales" class="value">UGX 0</span></div>
+      </div>
+      <div class="widgets">
+        <div class="widget orange"><span class="label">Ordered – Not Paid</span><span id="stat-onp-c" class="value">0</span><span class="sub" id="stat-onp-a">UGX 0</span></div>
+        <div class="widget blue"><span class="label">Paid – Not Taken</span><span id="stat-pnt-c" class="value">0</span><span class="sub" id="stat-pnt-a">UGX 0</span></div>
+        <div class="widget red"><span class="label">Taken – Not Paid (Credit)</span><span id="stat-tnp-c" class="value">0</span><span class="sub" id="stat-tnp-a">UGX 0</span></div>
+      </div>
+      <div class="widgets">
+        <div class="widget green"><span class="label">Most Selling Product</span><span id="stat-best" class="value">—</span><span class="sub" id="stat-best-qty">0 sold</span></div>
+        <div class="widget pink"><span class="label">Least Selling Product</span><span id="stat-worst" class="value">—</span><span class="sub" id="stat-worst-qty">0 sold</span></div>
+        <div class="widget purple"><span class="label">Customer Debt</span><span id="stat-cust-debt" class="value">UGX 0</span><span class="sub" id="stat-cust-count">0 customers</span></div>
+      </div>
+      <div class="panel"><h2>Debt Aging</h2>
+        <div class="aging-grid" id="aging-grid">
+          <div class="aging-cell"><span>0–30 days</span><b id="age-current">UGX 0</b></div>
+          <div class="aging-cell"><span>31–60 days</span><b id="age-30">UGX 0</b></div>
+          <div class="aging-cell"><span>61–90 days</span><b id="age-60">UGX 0</b></div>
+          <div class="aging-cell"><span>91–180 days</span><b id="age-90">UGX 0</b></div>
+          <div class="aging-cell warn"><span>180+ days</span><b id="age-older">UGX 0</b></div>
+        </div>
+      </div>
+      <div class="panel" style="margin-top:20px;"><h2>Low Stock Alerts</h2>
+        <table id="low-stock-table"><thead><tr><th>Product</th><th>Stock</th><th>Reorder At</th><th>Action</th></tr></thead><tbody></tbody></table>
+      </div>
+    </section>
+
+    <section id="view-products" class="view">
+      <header class="view-header"><h1>Products</h1>
+        <div class="actions"><input type="search" id="product-search" placeholder="Search products...">
+        <button id="btn-add-product" class="primary">+ Add Product</button></div>
+      </header>
+      <table id="product-table">
+        <thead><tr><th>Name</th><th>Category</th><th>Cost</th><th>Price</th><th>Margin</th><th>Stock</th><th>Actions</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section id="view-customers" class="view">
+      <header class="view-header"><h1>Customers</h1>
+        <div class="actions"><input type="search" id="customer-search" placeholder="Search customers..."></div>
+      </header>
+      <table id="customer-table">
+        <thead><tr><th>Name</th><th>Phone</th><th>Orders</th><th>Lifetime Spend</th><th>Outstanding</th><th>Actions</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section id="view-sale" class="view">
+      <header class="view-header"><h1>New Order</h1></header>
+      <div class="sale-layout">
+        <div class="sale-left">
+          <input type="text" id="sale-search" placeholder="Type product name and press Enter to add..." autocomplete="off">
+          <div id="autocomplete-box" class="autocomplete hidden"></div>
+          <div id="sale-product-list" class="product-grid"></div>
+        </div>
+        <div class="sale-right">
+          <h2>Order Cart</h2>
+          <table id="cart-table"><thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th><th></th></tr></thead><tbody></tbody></table>
+          <div class="cart-summary">
+            <div class="row"><span>Subtotal</span><span id="cart-subtotal">UGX 0</span></div>
+            <div class="row"><span>Tax (%)</span><input type="number" id="cart-tax" value="0" min="0" step="0.1"></div>
+            <div class="row"><span>Discount (UGX)</span><input type="number" id="cart-discount" value="0" min="0" step="1"></div>
+            <div class="row total"><span>Grand Total</span><span id="cart-total">UGX 0</span></div>
+            <div class="row"><span>Amount Paid (UGX)</span><input type="number" id="cart-paid" value="0" min="0" step="1"></div>
+            <div class="row balance-row"><span>Balance Due</span><span id="cart-balance" class="balance">UGX 0</span></div>
+          </div>
+          <label class="checkbox-row"><input type="checkbox" id="cart-taken"> Mark goods as <b>Taken</b> now</label>
+          <div class="customer-picker">
+            <label>Customer</label>
+            <div class="customer-row">
+              <input type="text" id="customer-search-input" placeholder="Type name or phone...">
+              <button id="btn-customer-clear" class="small">Clear</button>
+            </div>
+            <div id="customer-autocomplete" class="autocomplete hidden"></div>
+            <div class="selected-customer hidden" id="selected-customer">
+              <span class="pill">Selected</span>
+              <b id="selected-customer-name"></b>
+              <span id="selected-customer-phone" class="muted"></span>
+              <button id="btn-customer-change" class="small">Change</button>
+            </div>
+            <div class="customer-debt hidden" id="customer-debt"></div>
+          </div>
+          <button id="btn-checkout" class="primary large">Complete Order</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-orders" class="view">
+      <header class="view-header">
+        <h1>Orders / Receipts</h1>
+        <div class="actions">
+          <input type="search" id="order-customer-search" placeholder="Search customer name or phone...">
+          <button id="btn-clear-search" class="small">Clear</button>
+        </div>
+      </header>
+      <div class="tabs" id="order-tabs">
+        <button class="tab active" data-filter="all">All</button>
+        <button class="tab" data-filter="unpaid">Unpaid</button>
+        <button class="tab" data-filter="partial">Partial</button>
+        <button class="tab" data-filter="paid_not_taken">Paid – Not Taken</button>
+        <button class="tab" data-filter="taken_not_paid">Taken – Not Paid</button>
+        <button class="tab" data-filter="cleared">Cleared</button>
+      </div>
+      <table id="orders-table">
+        <thead><tr><th>Invoice #</th><th>Customer</th><th>Total</th><th>Paid</th><th>Balance</th><th>Payment</th><th>Fulfillment</th><th>Date</th><th>Actions</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section id="view-reports" class="view">
+      <header class="view-header">
+        <h1>Sales Reports</h1>
+        <div class="actions">
+          <button class="small" data-range="today">Today</button>
+          <button class="small" data-range="7d">Last 7 days</button>
+          <button class="small" data-range="30d">Last 30 days</button>
+          <button class="small active" data-range="month">This Month</button>
+          <button class="small" data-range="lastmonth">Last Month</button>
+          <button class="small" data-range="year">This Year</button>
+        </div>
+      </header>
+
+      <div class="report-controls">
+        <label>From<input type="date" id="report-from"></label>
+        <label>To<input type="date" id="report-to"></label>
+        <button id="btn-apply-range" class="primary small">Apply</button>
+        <span style="flex:1"></span>
+        <button id="btn-export-pdf" class="small">Export PDF</button>
+        <button id="btn-export-csv" class="small">Export CSV</button>
+      </div>
+
+      <div class="widgets">
+        <div class="widget blue"><span class="label">Revenue Billed</span><span id="rep-billed" class="value">UGX 0</span></div>
+        <div class="widget green"><span class="label">Collected</span><span id="rep-collected" class="value">UGX 0</span></div>
+        <div class="widget red"><span class="label">Outstanding</span><span id="rep-outstanding" class="value">UGX 0</span></div>
+        <div class="widget purple"><span class="label">Est. Profit</span><span id="rep-profit" class="value">UGX 0</span></div>
+        <div class="widget"><span class="label">Orders</span><span id="rep-orders" class="value">0</span></div>
+        <div class="widget"><span class="label">Avg Order</span><span id="rep-avg" class="value">UGX 0</span></div>
+      </div>
+
+      <div class="charts-row">
+        <div class="chart-panel">
+          <h2>Revenue Trend</h2>
+          <canvas id="chart-revenue" height="200"></canvas>
+        </div>
+        <div class="chart-panel">
+          <h2>Payment Split</h2>
+          <canvas id="chart-payments" height="200"></canvas>
+        </div>
+      </div>
+
+      <div class="charts-row">
+        <div class="chart-panel">
+          <h2>Top Products by Revenue</h2>
+          <canvas id="chart-products" height="240"></canvas>
+        </div>
+        <div class="chart-panel">
+          <h2>Top Customers</h2>
+          <table id="top-customers-table" class="compact">
+            <thead><tr><th>Customer</th><th>Orders</th><th>Billed</th><th>Balance</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:20px;">
+        <h2>Daily Breakdown</h2>
+        <table id="daily-table" class="compact">
+          <thead><tr><th>Date</th><th>Orders</th><th>Billed</th><th>Collected</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="modal" class="modal hidden">
+  <div class="modal-content">
+    <h2 id="modal-title"></h2>
+    <div id="modal-body"></div>
+    <div class="modal-actions"><button id="modal-cancel">Cancel</button><button id="modal-confirm" class="primary">Save</button></div>
+  </div>
+</div>
+
+<div id="receipt-modal" class="modal hidden">
+  <div class="modal-content receipt">
+    <div id="receipt-body"></div>
+    <div class="modal-actions">
+      <button id="receipt-close">Close</button>
+      <button id="receipt-print" class="primary">Print</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+
+<script src="lib/chart.umd.js"></script>
+<script src="lib/jspdf.umd.min.js"></script>
+<script src="lib/jspdf.plugin.autotable.min.js"></script>
+<script src="ui.js"></script>
+</body>
+</html>

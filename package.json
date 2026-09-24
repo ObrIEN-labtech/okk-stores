@@ -1,0 +1,64 @@
+{
+  "name": "okk-stores",
+  "version": "2.1.0",
+  "description": "OKK Stores Inventory & Invoicing",
+  "main": "main.js",
+  "author": "OKK Stores",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "rebuild": "electron-rebuild -f -w better-sqlite3",
+    "build:win": "electron-builder --win",
+    "backup": "node scripts/backup-db.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.5.0",
+    "chart.js": "^4.5.1",
+    "jspdf": "^2.5.2",
+    "jspdf-autotable": "^3.8.4"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^3.6.0",
+    "electron": "^32.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.okkstores.app",
+    "productName": "OKK Stores",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "db.js",
+      "repository.js",
+      "ui.js",
+      "index.html",
+      "style.css",
+      "lib/**/*",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "OKK Stores"
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Office"
+    }
+  }
+}
