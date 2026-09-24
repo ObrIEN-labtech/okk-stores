@@ -1,6 +1,6 @@
 {
   "name": "okk-stores",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "OKK Stores Inventory & Invoicing",
   "main": "main.js",
   "author": "OKK Stores",
@@ -8,12 +8,14 @@
   "scripts": {
     "start": "electron .",
     "rebuild": "electron-rebuild -f -w better-sqlite3",
-    "build:win": "electron-builder --win",
+    "build:win": "electron-builder --win --publish never",
+    "release": "electron-builder --win --publish always",
     "backup": "node scripts/backup-db.js"
   },
   "dependencies": {
     "better-sqlite3": "^11.5.0",
-    "chart.js": "^4.5.1",
+    "chart.js": "^4.4.6",
+    "electron-updater": "^6.3.9",
     "jspdf": "^2.5.2",
     "jspdf-autotable": "^3.8.4"
   },
@@ -25,29 +27,29 @@
   "build": {
     "appId": "com.okkstores.app",
     "productName": "OKK Stores",
-    "directories": {
-      "output": "dist"
-    },
+    "directories": { "output": "dist" },
     "files": [
       "main.js",
       "preload.js",
       "db.js",
       "repository.js",
       "ui.js",
+      "updater.js",
       "index.html",
       "style.css",
       "lib/**/*",
       "node_modules/**/*"
     ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "ObrIEN-labtech",
+        "repo": "okk-stores",
+        "releaseType": "release"
+      }
+    ],
     "win": {
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64"
-          ]
-        }
-      ],
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
       "icon": "assets/icon.ico"
     },
     "nsis": {
@@ -56,9 +58,6 @@
       "createDesktopShortcut": true,
       "shortcutName": "OKK Stores"
     },
-    "linux": {
-      "target": "AppImage",
-      "category": "Office"
-    }
+    "linux": { "target": "AppImage", "category": "Office" }
   }
 }
