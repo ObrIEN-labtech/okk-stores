@@ -1,4 +1,4 @@
-console.log('>>> ui.js loaded (Dream POS redesign)');
+console.log('>>> ui.js loaded (Dream POS + Backups)');
 var api = window.api;
 
 function UGX(n) { return 'UGX ' + Math.round(Number(n) || 0).toLocaleString(); }
@@ -16,6 +16,7 @@ function fmtDate(d) {
   return y + '-' + m + '-' + day;
 }
 
+// ============ TOASTS ============
 function showToast(message, type, duration) {
   type = type || 'info';
   duration = duration === undefined ? 3500 : duration;
@@ -39,6 +40,7 @@ window.toast = {
   info:    function(m){ return showToast(m, 'info'); }
 };
 
+// ============ CONFIRM ============
 function showConfirm(options) {
   return new Promise(function(resolve) {
     var modal = document.createElement('div');
@@ -65,6 +67,7 @@ function showConfirm(options) {
 }
 window.confirmDialog = showConfirm;
 
+// ============ DARK MODE ============
 function applyDarkMode(enabled) {
   if (enabled) {
     document.body.classList.add('dark-mode');
@@ -88,6 +91,7 @@ document.getElementById('btn-dark-toggle').addEventListener('click', function() 
   applyDarkMode(!isDark);
 });
 
+// ============ AUTH ============
 var isSettingUp = false;
 async function initLogin() {
   var hasPw = await api.auth.hasPassword();
@@ -122,7 +126,12 @@ async function tryLogin() {
   } else {
     var ok = await api.auth.checkPassword(pw);
     if (ok) { showApp(); window.toast.success('Welcome back'); }
-    else { err.style.color = '#EA5455'; err.textContent = 'Incorrect password'; document.getElementById('login-pass').value = ''; document.getElementById('login-pass').focus(); }
+    else {
+      err.style.color = '#EA5455';
+      err.textContent = 'Incorrect password';
+      document.getElementById('login-pass').value = '';
+      document.getElementById('login-pass').focus();
+    }
   }
 }
 function showApp() {
@@ -152,6 +161,7 @@ document.getElementById('btn-logout').addEventListener('click', async function()
   if (ok) logout();
 });
 
+// ============ NAVIGATION ============
 document.querySelectorAll('.sidebar-nav a').forEach(function(link) {
   link.addEventListener('click', function(e) {
     e.preventDefault();
@@ -170,8 +180,10 @@ function refreshView(v) {
   if (v === 'sale') loadSaleProducts();
   if (v === 'orders') loadOrders('all');
   if (v === 'reports') loadReports();
+  if (v === 'backups') loadBackups();
 }
 
+// ============ DASHBOARD ============
 async function loadDashboard() {
   var s = await api.dashboard.stats();
   document.getElementById('stat-value').textContent = UGX(s.totalValue);
@@ -211,7 +223,10 @@ async function loadDashboard() {
 window.restock = async function(id) {
   var qty = parseInt(prompt('Add how many units?') || 0);
   if (qty > 0) { await api.products.adjustStock(id, qty, 'Restock'); loadDashboard(); window.toast.success('Stock updated'); }
-};async function updateNotificationBadge() {
+};
+
+// ============ NOTIFICATIONS ============
+async function updateNotificationBadge() {
   try {
     var products = await api.products.getAll();
     var low = products.filter(function(p){ return p.stock <= p.reorder_level; }).length;
@@ -260,6 +275,7 @@ document.addEventListener('click', function(e) {
   if (dd && !dd.classList.contains('hidden') && !dd.contains(e.target) && e.target.id !== 'btn-notifications') dd.classList.add('hidden');
 });
 
+// ============ GLOBAL SEARCH ============
 var globalSearchTimer = null;
 document.getElementById('global-search').addEventListener('input', function(e) {
   clearTimeout(globalSearchTimer);
@@ -288,6 +304,7 @@ window.gotoProduct = function(id) { document.getElementById('global-search-resul
 window.gotoCustomer = function(id) { document.getElementById('global-search-results').classList.add('hidden'); document.getElementById('global-search').value = ''; window.gotoView('customers'); setTimeout(function() { viewCustomer(id); }, 150); };
 window.gotoOrder = function(id) { document.getElementById('global-search-results').classList.add('hidden'); document.getElementById('global-search').value = ''; window.gotoView('orders'); setTimeout(function() { viewOrder(id); }, 150); };
 
+// ============ PRODUCTS ============
 var cachedProducts = [];
 var productSearchTerm = '';
 document.getElementById('product-search').addEventListener('input', function(e){ productSearchTerm = e.target.value.toLowerCase(); renderProductRows(); });
@@ -358,7 +375,10 @@ window.deleteProduct = async function(id) {
   await api.products.delete(id);
   await loadProducts();
   window.toast.success('Product deleted');
-};var cachedCustomers = [];
+};
+
+// ============ CUSTOMERS ============
+var cachedCustomers = [];
 var customerSearchTerm = '';
 document.getElementById('customer-search').addEventListener('input', function(e){ customerSearchTerm = e.target.value.toLowerCase(); renderCustomerRows(); });
 async function loadCustomers() { cachedCustomers = await api.customers.getAll(); renderCustomerRows(); }
@@ -407,6 +427,7 @@ window.deleteCustomer = async function(id) {
   window.toast.success('Customer deleted');
 };
 
+// ============ NEW ORDER ============
 var saleProducts = [];
 var cart = [];
 var selectedCustomer = null;
@@ -547,7 +568,10 @@ document.getElementById('btn-checkout').addEventListener('click', async function
     window.toast.success('Sale recorded: ' + inv.invoice_no);
     showReceipt(inv);
   } catch (e) { window.toast.error(e.message || String(e)); }
-});var currentFilter = 'all';
+});
+
+// ============ ORDERS ============
+var currentFilter = 'all';
 var allOrders = [];
 document.querySelectorAll('#order-tabs .tab').forEach(function(tab) {
   tab.addEventListener('click', function() {
@@ -575,6 +599,7 @@ function renderOrdersTable() {
 }
 window.viewOrder = async function(id) { var inv = await api.orders.getById(id); showReceipt(inv); };
 
+// ============ RECEIPT ============
 function showReceipt(inv) {
   var items = inv.items.map(function(i) { return '<div class="line"><span>' + escapeHtml(i.product_name) + ' x ' + i.quantity + '</span><span>' + UGX(i.line_total) + '</span></div><div class="line" style="color:var(--text-light);font-size:11px;padding-left:8px;">@ ' + UGX(i.unit_price) + '</div>'; }).join('');
   var paymentPill = '<span class="pill ' + inv.payment_status + '">' + inv.payment_status + '</span>';
@@ -639,6 +664,7 @@ window.shareWhatsApp = async function(id) {
 document.getElementById('receipt-close').addEventListener('click', function(){ document.getElementById('receipt-modal').classList.add('hidden'); });
 document.getElementById('receipt-print').addEventListener('click', function(){ window.print(); });
 
+// ============ REPORTS ============
 var currentReport = null;
 var chartRevenue = null, chartPayments = null, chartProducts = null;
 var CHART_COLORS = { primary: '#FE9F43', secondary: '#092C4C', success: '#28C76F', danger: '#EA5455', warning: '#FF9F43', info: '#17A2B8', purple: '#7367F0' };
@@ -713,6 +739,7 @@ function renderDailyTable(daily) {
     : '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:24px;">No sales in this period.</td></tr>';
 }
 
+// ============ PDF / CSV EXPORTS ============
 function pdfHeader(doc) {
   doc.setFontSize(18); doc.setFont(undefined, 'bold'); doc.text('OKK STORES', 105, 15, { align: 'center' });
   doc.setFontSize(10); doc.setFont(undefined, 'normal'); doc.text('Plot 14 Keyo Road, Gulu City  •  Tel: 0772949121', 105, 21, { align: 'center' });
@@ -823,6 +850,98 @@ document.getElementById('btn-export-csv').addEventListener('click', async functi
   else if (res.error) window.toast.error('Save failed: ' + res.error);
 });
 
+// ============ BACKUP & RESTORE ============
+async function loadBackups() {
+  try {
+    var info = await api.backup.getInfo();
+    var list = await api.backup.list();
+
+    document.getElementById('backup-count').textContent = list.length;
+    document.getElementById('backup-primary-dir').textContent = info.dirs[0] || '—';
+
+    if (list.length > 0) {
+      var last = new Date(list[0].mtime);
+      document.getElementById('backup-last').textContent =
+        last.toLocaleDateString() + ' ' + last.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    } else {
+      document.getElementById('backup-last').textContent = 'No backups yet';
+    }
+
+    var tbody = document.querySelector('#backups-table tbody');
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:32px;">No backups found. Click "Backup Now" to create one.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = list.map(function(b) {
+      var dt = new Date(b.mtime);
+      var dateStr = dt.toLocaleDateString() + ' ' + dt.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+      var sizeKB = Math.round(b.size / 1024);
+      var sizeStr = sizeKB < 1024 ? sizeKB + ' KB' : (sizeKB / 1024).toFixed(1) + ' MB';
+      var locShort = b.dir.indexOf(':') > -1 ? b.dir.split('\\').slice(0,2).join('\\') : b.dir;
+      return '<tr>' +
+        '<td>' + dateStr + '</td>' +
+        '<td><b>' + escapeHtml(b.filename) + '</b></td>' +
+        '<td>' + sizeStr + '</td>' +
+        '<td style="font-size:12px;color:var(--text-muted);">' + escapeHtml(locShort) + '</td>' +
+        '<td>' +
+          '<button class="btn btn-light btn-sm" onclick="openBackupFolder(\'' + escapeAttr(b.dir) + '\')">Open</button>' +
+          '<button class="btn btn-danger btn-sm" onclick="restoreBackup(\'' + escapeAttr(b.fullPath) + '\')">Restore</button>' +
+        '</td>' +
+      '</tr>';
+    }).join('');
+  } catch (e) {
+    window.toast.error('Failed to load backups: ' + e.message);
+  }
+}
+window.openBackupFolder = async function(dirOrKey) {
+  try {
+    var dir = dirOrKey;
+    if (dirOrKey === 'primary') {
+      var info = await api.backup.getInfo();
+      dir = info.dirs[0];
+    }
+    if (!dir) { window.toast.warning('Folder path unavailable'); return; }
+    await api.backup.openFolder(dir);
+  } catch (e) {
+    window.toast.error('Could not open folder: ' + e.message);
+  }
+};
+window.restoreBackup = async function(filePath) {
+  var confirmed = await showConfirm({
+    title: 'Restore this backup?',
+    message: 'This will replace ALL current data with the backup from ' + filePath.split(/[\\\/]/).pop() + '. A safety copy of the current data is saved first. The app will restart.',
+    confirmText: 'Restore & Restart',
+    danger: true,
+    icon: '⟲'
+  });
+  if (!confirmed) return;
+  window.toast.info('Restoring backup...');
+  try {
+    var result = await api.backup.restore(filePath);
+    window.toast.success('Backup restored. Restarting...');
+    console.log('Safety backup saved at:', result.safetyBackup);
+  } catch (e) {
+    window.toast.error('Restore failed: ' + e.message);
+  }
+};
+document.getElementById('btn-backup-now').addEventListener('click', async function() {
+  var btn = this;
+  btn.disabled = true;
+  btn.textContent = 'Backing up...';
+  try {
+    var result = await api.backup.create();
+    window.toast.success('Backup created: ' + result.filename + ' (' + result.files + ' files)');
+    await loadBackups();
+  } catch (e) {
+    window.toast.error('Backup failed: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Backup Now';
+  }
+});
+
+// ============ AUTO-UPDATER ============
 (async function initUpdater() {
   try {
     var version = await api.updater.getVersion();
@@ -853,6 +972,7 @@ document.getElementById('btn-check-update').addEventListener('click', async func
   try { await api.updater.check(); } catch (e) { window.toast.error('Update check failed'); }
 });
 
+// ============ BOOT ============
 document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
 if (sessionStorage.getItem('okk_logged_in') === '1') {
   document.getElementById('login-screen').classList.add('hidden');

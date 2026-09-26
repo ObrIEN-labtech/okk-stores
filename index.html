@@ -11,7 +11,6 @@
 </head>
 <body>
 
-<!-- ============ LOGIN ============ -->
 <div id="login-screen" class="login-screen">
   <div class="login-card">
     <div class="login-logo">OKK</div>
@@ -27,10 +26,8 @@
   </div>
 </div>
 
-<!-- ============ APP SHELL ============ -->
 <div class="app-shell hidden" id="app-root">
 
-  <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="sidebar-brand">
       <div class="brand-mark">OKK</div>
@@ -42,47 +39,28 @@
 
     <nav class="sidebar-nav">
       <div class="nav-section-label">Main</div>
-      <a href="#" data-view="dashboard" class="nav-item active">
-        <span class="nav-icon">▦</span><span class="nav-label">Dashboard</span>
-      </a>
-      <a href="#" data-view="sale" class="nav-item">
-        <span class="nav-icon">＋</span><span class="nav-label">New Order</span>
-      </a>
-      <a href="#" data-view="orders" class="nav-item">
-        <span class="nav-icon">▤</span><span class="nav-label">Orders / Receipts</span>
-      </a>
+      <a href="#" data-view="dashboard" class="nav-item active"><span class="nav-icon">▦</span><span class="nav-label">Dashboard</span></a>
+      <a href="#" data-view="sale" class="nav-item"><span class="nav-icon">＋</span><span class="nav-label">New Order</span></a>
+      <a href="#" data-view="orders" class="nav-item"><span class="nav-icon">▤</span><span class="nav-label">Orders / Receipts</span></a>
 
       <div class="nav-section-label">Catalogue</div>
-      <a href="#" data-view="products" class="nav-item">
-        <span class="nav-icon">◈</span><span class="nav-label">Products</span>
-      </a>
-      <a href="#" data-view="customers" class="nav-item">
-        <span class="nav-icon">◉</span><span class="nav-label">Customers</span>
-      </a>
+      <a href="#" data-view="products" class="nav-item"><span class="nav-icon">◈</span><span class="nav-label">Products</span></a>
+      <a href="#" data-view="customers" class="nav-item"><span class="nav-icon">◉</span><span class="nav-label">Customers</span></a>
 
       <div class="nav-section-label">Insights</div>
-      <a href="#" data-view="reports" class="nav-item">
-        <span class="nav-icon">▨</span><span class="nav-label">Reports</span>
-      </a>
+      <a href="#" data-view="reports" class="nav-item"><span class="nav-icon">▨</span><span class="nav-label">Reports</span></a>
+      <a href="#" data-view="backups" class="nav-item"><span class="nav-icon">⟲</span><span class="nav-label">Backups & Restore</span></a>
     </nav>
 
     <div class="sidebar-footer">
-      <button id="btn-dark-toggle" class="sidebar-action">
-        <span class="nav-icon">☾</span><span id="dark-toggle-label">Dark Mode</span>
-      </button>
-      <button id="btn-check-update" class="sidebar-action">
-        <span class="nav-icon">↻</span><span>Check for Updates</span>
-      </button>
-      <button id="btn-logout" class="sidebar-action danger">
-        <span class="nav-icon">⇥</span><span>Log Out</span>
-      </button>
+      <button id="btn-dark-toggle" class="sidebar-action"><span class="nav-icon">☾</span><span id="dark-toggle-label">Dark Mode</span></button>
+      <button id="btn-check-update" class="sidebar-action"><span class="nav-icon">↻</span><span>Check for Updates</span></button>
+      <button id="btn-logout" class="sidebar-action danger"><span class="nav-icon">⇥</span><span>Log Out</span></button>
     </div>
   </aside>
 
-  <!-- MAIN AREA -->
   <div class="main-area">
 
-    <!-- TOP BAR -->
     <header class="topbar">
       <div class="topbar-search">
         <span class="search-icon">⌕</span>
@@ -101,16 +79,14 @@
           <div class="user-avatar">OK</div>
           <div class="user-info">
             <span class="user-name">Admin</span>
-            <span class="user-role" id="user-version">v2.3.0</span>
+            <span class="user-role" id="user-version">v2.4.0</span>
           </div>
         </div>
       </div>
     </header>
 
-    <!-- CONTENT -->
     <main class="content">
 
-      <!-- ============ DASHBOARD ============ -->
       <section id="view-dashboard" class="view active">
         <div class="page-header">
           <div>
@@ -121,101 +97,27 @@
         </div>
 
         <div class="stat-grid stat-grid-5">
-          <div class="stat-card stat-primary">
-            <div class="stat-icon">₴</div>
-            <div class="stat-content">
-              <span class="stat-label">Inventory Value</span>
-              <span class="stat-value" id="stat-value">UGX 0</span>
-            </div>
-          </div>
-          <div class="stat-card stat-success">
-            <div class="stat-icon">↗</div>
-            <div class="stat-content">
-              <span class="stat-label">Potential Profit</span>
-              <span class="stat-value" id="stat-profit">UGX 0</span>
-            </div>
-          </div>
-          <div class="stat-card stat-info">
-            <div class="stat-icon">◈</div>
-            <div class="stat-content">
-              <span class="stat-label">Products</span>
-              <span class="stat-value" id="stat-products">0</span>
-            </div>
-          </div>
-          <div class="stat-card stat-warning">
-            <div class="stat-icon">⚠</div>
-            <div class="stat-content">
-              <span class="stat-label">Low Stock</span>
-              <span class="stat-value" id="stat-lowstock">0</span>
-            </div>
-          </div>
-          <div class="stat-card stat-secondary">
-            <div class="stat-icon">₵</div>
-            <div class="stat-content">
-              <span class="stat-label">Today's Sales</span>
-              <span class="stat-value" id="stat-sales">UGX 0</span>
-            </div>
-          </div>
+          <div class="stat-card stat-primary"><div class="stat-icon">₴</div><div class="stat-content"><span class="stat-label">Inventory Value</span><span class="stat-value" id="stat-value">UGX 0</span></div></div>
+          <div class="stat-card stat-success"><div class="stat-icon">↗</div><div class="stat-content"><span class="stat-label">Potential Profit</span><span class="stat-value" id="stat-profit">UGX 0</span></div></div>
+          <div class="stat-card stat-info"><div class="stat-icon">◈</div><div class="stat-content"><span class="stat-label">Products</span><span class="stat-value" id="stat-products">0</span></div></div>
+          <div class="stat-card stat-warning"><div class="stat-icon">⚠</div><div class="stat-content"><span class="stat-label">Low Stock</span><span class="stat-value" id="stat-lowstock">0</span></div></div>
+          <div class="stat-card stat-secondary"><div class="stat-icon">₵</div><div class="stat-content"><span class="stat-label">Today's Sales</span><span class="stat-value" id="stat-sales">UGX 0</span></div></div>
         </div>
 
         <div class="stat-grid stat-grid-3">
-          <div class="order-card order-pending">
-            <div class="order-card-head">
-              <span class="order-card-label">Ordered – Not Paid</span>
-              <span class="order-card-icon">⏱</span>
-            </div>
-            <div class="order-card-value" id="stat-onp-c">0</div>
-            <div class="order-card-sub" id="stat-onp-a">UGX 0</div>
-          </div>
-          <div class="order-card order-ready">
-            <div class="order-card-head">
-              <span class="order-card-label">Paid – Not Taken</span>
-              <span class="order-card-icon">📦</span>
-            </div>
-            <div class="order-card-value" id="stat-pnt-c">0</div>
-            <div class="order-card-sub" id="stat-pnt-a">UGX 0</div>
-          </div>
-          <div class="order-card order-credit">
-            <div class="order-card-head">
-              <span class="order-card-label">Taken – Not Paid</span>
-              <span class="order-card-icon">⚠</span>
-            </div>
-            <div class="order-card-value" id="stat-tnp-c">0</div>
-            <div class="order-card-sub" id="stat-tnp-a">UGX 0</div>
-          </div>
+          <div class="order-card order-pending"><div class="order-card-head"><span class="order-card-label">Ordered – Not Paid</span><span class="order-card-icon">⏱</span></div><div class="order-card-value" id="stat-onp-c">0</div><div class="order-card-sub" id="stat-onp-a">UGX 0</div></div>
+          <div class="order-card order-ready"><div class="order-card-head"><span class="order-card-label">Paid – Not Taken</span><span class="order-card-icon">📦</span></div><div class="order-card-value" id="stat-pnt-c">0</div><div class="order-card-sub" id="stat-pnt-a">UGX 0</div></div>
+          <div class="order-card order-credit"><div class="order-card-head"><span class="order-card-label">Taken – Not Paid</span><span class="order-card-icon">⚠</span></div><div class="order-card-value" id="stat-tnp-c">0</div><div class="order-card-sub" id="stat-tnp-a">UGX 0</div></div>
         </div>
 
         <div class="stat-grid stat-grid-3">
-          <div class="card card-best">
-            <div class="card-head">
-              <span class="card-label">Most Selling Product</span>
-              <span class="card-icon card-icon-success">▲</span>
-            </div>
-            <div class="card-title" id="stat-best">—</div>
-            <div class="card-sub" id="stat-best-qty">0 sold</div>
-          </div>
-          <div class="card card-worst">
-            <div class="card-head">
-              <span class="card-label">Least Selling Product</span>
-              <span class="card-icon card-icon-danger">▼</span>
-            </div>
-            <div class="card-title" id="stat-worst">—</div>
-            <div class="card-sub" id="stat-worst-qty">0 sold</div>
-          </div>
-          <div class="card card-debt">
-            <div class="card-head">
-              <span class="card-label">Customer Debt</span>
-              <span class="card-icon card-icon-warning">◉</span>
-            </div>
-            <div class="card-title" id="stat-cust-debt">UGX 0</div>
-            <div class="card-sub" id="stat-cust-count">0 customers</div>
-          </div>
+          <div class="card card-best"><div class="card-head"><span class="card-label">Most Selling Product</span><span class="card-icon card-icon-success">▲</span></div><div class="card-title" id="stat-best">—</div><div class="card-sub" id="stat-best-qty">0 sold</div></div>
+          <div class="card card-worst"><div class="card-head"><span class="card-label">Least Selling Product</span><span class="card-icon card-icon-danger">▼</span></div><div class="card-title" id="stat-worst">—</div><div class="card-sub" id="stat-worst-qty">0 sold</div></div>
+          <div class="card card-debt"><div class="card-head"><span class="card-label">Customer Debt</span><span class="card-icon card-icon-warning">◉</span></div><div class="card-title" id="stat-cust-debt">UGX 0</div><div class="card-sub" id="stat-cust-count">0 customers</div></div>
         </div>
 
         <div class="card">
-          <div class="card-head">
-            <span class="card-label">Debt Aging</span>
-          </div>
+          <div class="card-head"><span class="card-label">Debt Aging</span></div>
           <div class="aging-grid">
             <div class="aging-cell aging-ok"><span>0–30 days</span><b id="age-current">UGX 0</b></div>
             <div class="aging-cell aging-warn"><span>31–60 days</span><b id="age-30">UGX 0</b></div>
@@ -226,25 +128,16 @@
         </div>
 
         <div class="card">
-          <div class="card-head">
-            <span class="card-label">Low Stock Alerts</span>
-          </div>
+          <div class="card-head"><span class="card-label">Low Stock Alerts</span></div>
           <div class="table-wrap">
-            <table id="low-stock-table" class="data-table">
-              <thead><tr><th>Product</th><th>Stock</th><th>Reorder At</th><th>Action</th></tr></thead>
-              <tbody></tbody>
-            </table>
+            <table id="low-stock-table" class="data-table"><thead><tr><th>Product</th><th>Stock</th><th>Reorder At</th><th>Action</th></tr></thead><tbody></tbody></table>
           </div>
         </div>
       </section>
 
-      <!-- ============ PRODUCTS ============ -->
       <section id="view-products" class="view">
         <div class="page-header">
-          <div>
-            <h1>Products</h1>
-            <p class="breadcrumb">Manage your inventory</p>
-          </div>
+          <div><h1>Products</h1><p class="breadcrumb">Manage your inventory</p></div>
           <div class="page-actions">
             <input type="search" id="product-search" class="search-input" placeholder="Search products...">
             <button id="btn-add-product" class="btn btn-primary">+ Add Product</button>
@@ -252,43 +145,25 @@
         </div>
         <div class="card">
           <div class="table-wrap">
-            <table id="product-table" class="data-table">
-              <thead><tr><th>Name</th><th>Category</th><th>Cost</th><th>Price</th><th>Margin</th><th>Stock</th><th>Actions</th></tr></thead>
-              <tbody></tbody>
-            </table>
+            <table id="product-table" class="data-table"><thead><tr><th>Name</th><th>Category</th><th>Cost</th><th>Price</th><th>Margin</th><th>Stock</th><th>Actions</th></tr></thead><tbody></tbody></table>
           </div>
         </div>
       </section>
 
-      <!-- ============ CUSTOMERS ============ -->
       <section id="view-customers" class="view">
         <div class="page-header">
-          <div>
-            <h1>Customers</h1>
-            <p class="breadcrumb">Manage your customer accounts</p>
-          </div>
-          <div class="page-actions">
-            <input type="search" id="customer-search" class="search-input" placeholder="Search customers...">
-          </div>
+          <div><h1>Customers</h1><p class="breadcrumb">Manage your customer accounts</p></div>
+          <div class="page-actions"><input type="search" id="customer-search" class="search-input" placeholder="Search customers..."></div>
         </div>
         <div class="card">
           <div class="table-wrap">
-            <table id="customer-table" class="data-table">
-              <thead><tr><th>Name</th><th>Phone</th><th>Orders</th><th>Lifetime Spend</th><th>Outstanding</th><th>Actions</th></tr></thead>
-              <tbody></tbody>
-            </table>
+            <table id="customer-table" class="data-table"><thead><tr><th>Name</th><th>Phone</th><th>Orders</th><th>Lifetime Spend</th><th>Outstanding</th><th>Actions</th></tr></thead><tbody></tbody></table>
           </div>
         </div>
       </section>
 
-      <!-- ============ NEW ORDER ============ -->
       <section id="view-sale" class="view">
-        <div class="page-header">
-          <div>
-            <h1>New Order</h1>
-            <p class="breadcrumb">Create a new sale</p>
-          </div>
-        </div>
+        <div class="page-header"><div><h1>New Order</h1><p class="breadcrumb">Create a new sale</p></div></div>
         <div class="pos-layout">
           <div class="pos-left">
             <div class="card">
@@ -301,16 +176,10 @@
           </div>
           <div class="pos-right">
             <div class="card">
-              <div class="card-head">
-                <span class="card-label">Current Order</span>
-              </div>
+              <div class="card-head"><span class="card-label">Current Order</span></div>
               <div class="table-wrap">
-                <table id="cart-table" class="data-table">
-                  <thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th><th></th></tr></thead>
-                  <tbody></tbody>
-                </table>
+                <table id="cart-table" class="data-table"><thead><tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th><th></th></tr></thead><tbody></tbody></table>
               </div>
-
               <div class="cart-summary">
                 <div class="summary-row"><span>Subtotal</span><span id="cart-subtotal">UGX 0</span></div>
                 <div class="summary-row"><span>Tax (%)</span><input type="number" id="cart-tax" value="0" min="0" step="0.1"></div>
@@ -319,9 +188,7 @@
                 <div class="summary-row"><span>Amount Paid (UGX)</span><input type="number" id="cart-paid" value="0" min="0" step="1"></div>
                 <div class="summary-row balance"><span>Balance Due</span><span id="cart-balance">UGX 0</span></div>
               </div>
-
               <label class="checkbox-row"><input type="checkbox" id="cart-taken"> Mark goods as <b>Taken</b> now</label>
-
               <div class="customer-picker">
                 <label class="picker-label">Customer</label>
                 <div class="customer-row">
@@ -337,26 +204,20 @@
                 </div>
                 <div class="customer-debt hidden" id="customer-debt"></div>
               </div>
-
               <button id="btn-checkout" class="btn btn-primary btn-block btn-lg">Complete Order</button>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- ============ ORDERS / RECEIPTS ============ -->
       <section id="view-orders" class="view">
         <div class="page-header">
-          <div>
-            <h1>Orders / Receipts</h1>
-            <p class="breadcrumb">View and manage all orders</p>
-          </div>
+          <div><h1>Orders / Receipts</h1><p class="breadcrumb">View and manage all orders</p></div>
           <div class="page-actions">
             <input type="search" id="order-customer-search" class="search-input" placeholder="Search customer name or phone...">
             <button id="btn-clear-search" class="btn btn-light btn-sm">Clear</button>
           </div>
         </div>
-
         <div class="tabs" id="order-tabs">
           <button class="tab active" data-filter="all">All</button>
           <button class="tab" data-filter="unpaid">Unpaid</button>
@@ -365,24 +226,16 @@
           <button class="tab" data-filter="taken_not_paid">Taken – Not Paid</button>
           <button class="tab" data-filter="cleared">Cleared</button>
         </div>
-
         <div class="card">
           <div class="table-wrap">
-            <table id="orders-table" class="data-table">
-              <thead><tr><th>Invoice #</th><th>Customer</th><th>Total</th><th>Paid</th><th>Balance</th><th>Payment</th><th>Fulfillment</th><th>Date</th><th>Actions</th></tr></thead>
-              <tbody></tbody>
-            </table>
+            <table id="orders-table" class="data-table"><thead><tr><th>Invoice #</th><th>Customer</th><th>Total</th><th>Paid</th><th>Balance</th><th>Payment</th><th>Fulfillment</th><th>Date</th><th>Actions</th></tr></thead><tbody></tbody></table>
           </div>
         </div>
       </section>
 
-      <!-- ============ REPORTS ============ -->
       <section id="view-reports" class="view">
         <div class="page-header">
-          <div>
-            <h1>Sales Reports</h1>
-            <p class="breadcrumb">Analyze your business performance</p>
-          </div>
+          <div><h1>Sales Reports</h1><p class="breadcrumb">Analyze your business performance</p></div>
           <div class="page-actions">
             <button class="btn btn-light btn-sm range-btn" data-range="today">Today</button>
             <button class="btn btn-light btn-sm range-btn" data-range="7d">7 days</button>
@@ -403,55 +256,25 @@
         </div>
 
         <div class="stat-grid stat-grid-6">
-          <div class="stat-card stat-secondary">
-            <span class="stat-label">Revenue Billed</span>
-            <span class="stat-value" id="rep-billed">UGX 0</span>
-          </div>
-          <div class="stat-card stat-success">
-            <span class="stat-label">Collected</span>
-            <span class="stat-value" id="rep-collected">UGX 0</span>
-          </div>
-          <div class="stat-card stat-danger">
-            <span class="stat-label">Outstanding</span>
-            <span class="stat-value" id="rep-outstanding">UGX 0</span>
-          </div>
-          <div class="stat-card stat-primary">
-            <span class="stat-label">Est. Profit</span>
-            <span class="stat-value" id="rep-profit">UGX 0</span>
-          </div>
-          <div class="stat-card stat-info">
-            <span class="stat-label">Orders</span>
-            <span class="stat-value" id="rep-orders">0</span>
-          </div>
-          <div class="stat-card stat-warning">
-            <span class="stat-label">Avg Order</span>
-            <span class="stat-value" id="rep-avg">UGX 0</span>
-          </div>
+          <div class="stat-card stat-secondary"><span class="stat-label">Revenue Billed</span><span class="stat-value" id="rep-billed">UGX 0</span></div>
+          <div class="stat-card stat-success"><span class="stat-label">Collected</span><span class="stat-value" id="rep-collected">UGX 0</span></div>
+          <div class="stat-card stat-danger"><span class="stat-label">Outstanding</span><span class="stat-value" id="rep-outstanding">UGX 0</span></div>
+          <div class="stat-card stat-primary"><span class="stat-label">Est. Profit</span><span class="stat-value" id="rep-profit">UGX 0</span></div>
+          <div class="stat-card stat-info"><span class="stat-label">Orders</span><span class="stat-value" id="rep-orders">0</span></div>
+          <div class="stat-card stat-warning"><span class="stat-label">Avg Order</span><span class="stat-value" id="rep-avg">UGX 0</span></div>
         </div>
 
         <div class="charts-row">
-          <div class="card">
-            <div class="card-head"><span class="card-label">Revenue Trend</span></div>
-            <canvas id="chart-revenue" height="200"></canvas>
-          </div>
-          <div class="card">
-            <div class="card-head"><span class="card-label">Payment Split</span></div>
-            <canvas id="chart-payments" height="200"></canvas>
-          </div>
+          <div class="card"><div class="card-head"><span class="card-label">Revenue Trend</span></div><canvas id="chart-revenue" height="200"></canvas></div>
+          <div class="card"><div class="card-head"><span class="card-label">Payment Split</span></div><canvas id="chart-payments" height="200"></canvas></div>
         </div>
 
         <div class="charts-row">
-          <div class="card">
-            <div class="card-head"><span class="card-label">Top Products by Revenue</span></div>
-            <canvas id="chart-products" height="240"></canvas>
-          </div>
+          <div class="card"><div class="card-head"><span class="card-label">Top Products by Revenue</span></div><canvas id="chart-products" height="240"></canvas></div>
           <div class="card">
             <div class="card-head"><span class="card-label">Top Customers</span></div>
             <div class="table-wrap">
-              <table id="top-customers-table" class="data-table compact">
-                <thead><tr><th>Customer</th><th>Orders</th><th>Billed</th><th>Balance</th></tr></thead>
-                <tbody></tbody>
-              </table>
+              <table id="top-customers-table" class="data-table compact"><thead><tr><th>Customer</th><th>Orders</th><th>Billed</th><th>Balance</th></tr></thead><tbody></tbody></table>
             </div>
           </div>
         </div>
@@ -459,10 +282,63 @@
         <div class="card">
           <div class="card-head"><span class="card-label">Daily Breakdown</span></div>
           <div class="table-wrap">
-            <table id="daily-table" class="data-table compact">
-              <thead><tr><th>Date</th><th>Orders</th><th>Billed</th><th>Collected</th></tr></thead>
+            <table id="daily-table" class="data-table compact"><thead><tr><th>Date</th><th>Orders</th><th>Billed</th><th>Collected</th></tr></thead><tbody></tbody></table>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-backups" class="view">
+        <div class="page-header">
+          <div><h1>Backups & Restore</h1><p class="breadcrumb">Protect and recover your shop data</p></div>
+          <div class="page-actions">
+            <button id="btn-backup-now" class="btn btn-primary">Backup Now</button>
+          </div>
+        </div>
+
+        <div class="stat-grid stat-grid-3" id="backup-info-cards">
+          <div class="stat-card stat-info">
+            <div class="stat-icon">⟲</div>
+            <div class="stat-content">
+              <span class="stat-label">Total Backups</span>
+              <span class="stat-value" id="backup-count">0</span>
+            </div>
+          </div>
+          <div class="stat-card stat-success">
+            <div class="stat-icon">✓</div>
+            <div class="stat-content">
+              <span class="stat-label">Last Backup</span>
+              <span class="stat-value" id="backup-last" style="font-size:14px;">—</span>
+            </div>
+          </div>
+          <div class="stat-card stat-primary">
+            <div class="stat-icon">📁</div>
+            <div class="stat-content">
+              <span class="stat-label">Primary Location</span>
+              <span class="stat-value" id="backup-primary-dir" style="font-size:12px;">—</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><span class="card-label">Available Backups</span></div>
+          <div class="table-wrap">
+            <table id="backups-table" class="data-table">
+              <thead><tr><th>Date</th><th>File</th><th>Size</th><th>Location</th><th>Actions</th></tr></thead>
               <tbody></tbody>
             </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><span class="card-label">Automatic Backups</span></div>
+          <p style="color:var(--text-muted);font-size:13px;line-height:1.7;">
+            Windows Task Scheduler runs a backup every day at <b>20:40</b>. It saves to your
+            removable drive (<code>E:\OKK-Backups\</code>) and falls back to
+            <code>Documents\OKK-Backups\</code> if the drive is not connected.
+            The last 30 backups are kept automatically.
+          </p>
+          <div style="margin-top:14px;">
+            <button class="btn btn-light btn-sm" onclick="openBackupFolder('primary')">Open Backup Folder</button>
           </div>
         </div>
       </section>
@@ -471,25 +347,18 @@
   </div>
 </div>
 
-<!-- ============ MODALS ============ -->
 <div id="modal" class="modal hidden">
   <div class="modal-content">
     <h2 id="modal-title"></h2>
     <div id="modal-body"></div>
-    <div class="modal-actions">
-      <button id="modal-cancel" class="btn btn-light">Cancel</button>
-      <button id="modal-confirm" class="btn btn-primary">Save</button>
-    </div>
+    <div class="modal-actions"><button id="modal-cancel" class="btn btn-light">Cancel</button><button id="modal-confirm" class="btn btn-primary">Save</button></div>
   </div>
 </div>
 
 <div id="receipt-modal" class="modal hidden">
   <div class="modal-content receipt-modal">
     <div id="receipt-body"></div>
-    <div class="modal-actions">
-      <button id="receipt-close" class="btn btn-light">Close</button>
-      <button id="receipt-print" class="btn btn-primary">Print</button>
-    </div>
+    <div class="modal-actions"><button id="receipt-close" class="btn btn-light">Close</button><button id="receipt-print" class="btn btn-primary">Print</button></div>
   </div>
 </div>
 

@@ -40,5 +40,24 @@ contextBridge.exposeInMainWorld('api', {
   system: {
     openExternal: (url) => ipcRenderer.invoke('system:openExternal', url),
     saveFile: (options) => ipcRenderer.invoke('system:saveFile', options)
+  },
+  updater: {
+    check: () => ipcRenderer.invoke('update:check'),
+    install: () => ipcRenderer.invoke('update:install'),
+    getVersion: () => ipcRenderer.invoke('update:getVersion'),
+    onEvent: (channel, callback) => {
+      const valid = ['update:available', 'update:none', 'update:error', 'update:progress', 'update:downloaded'];
+      if (!valid.includes(channel)) return () => {};
+      const listener = (_, data) => callback(data);
+      ipcRenderer.on(channel, listener);
+      return () => ipcRenderer.removeListener(channel, listener);
+    }
+  },
+  backup: {
+    list: () => ipcRenderer.invoke('backup:list'),
+    create: () => ipcRenderer.invoke('backup:create'),
+    restore: (filePath) => ipcRenderer.invoke('backup:restore', filePath),
+    openFolder: (dir) => ipcRenderer.invoke('backup:openFolder', dir),
+    getInfo: () => ipcRenderer.invoke('backup:getInfo')
   }
 });
