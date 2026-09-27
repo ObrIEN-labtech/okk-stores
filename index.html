@@ -340,6 +340,20 @@
           <div style="margin-top:14px;">
             <button class="btn btn-light btn-sm" onclick="openBackupFolder('primary')">Open Backup Folder</button>
           </div>
+       
+        <div class="card">
+          <div class="card-head"><span class="card-label">Thermal Receipt Printer</span></div>
+          <p style="color:var(--text-muted);font-size:13px;line-height:1.7;margin-bottom:12px;">
+            Connect your 58mm USB thermal printer and select it below. The printer must appear in
+            <b>Windows Settings → Bluetooth &amp; devices → Printers</b> before you can use it here.
+          </p>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <input type="text" id="printer-name-input" placeholder="Printer name (e.g. POS-58)" style="min-width:240px;">
+            <button class="btn btn-primary btn-sm" onclick="savePrinterName(document.getElementById('printer-name-input').value)">Save</button>
+            <button class="btn btn-light btn-sm" onclick="testPrinter()">Test Print</button>
+            <button class="btn btn-light btn-sm" onclick="loadPrinterList()">Detect Printers</button>
+          </div>
+          <div id="printer-list" style="margin-top:12px;font-size:13px;color:var(--text-muted);"></div>
         </div>
       </section>
 

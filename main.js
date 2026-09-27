@@ -47,14 +47,10 @@ app.on('window-all-closed', () => {
 function getBackupDirs() {
   const dirs = [];
   if (process.platform === 'win32') {
-    // Removable drive E: (or any drive with OKK-BACKUP folder)
     ['E', 'D', 'F', 'G', 'H'].forEach(letter => {
       const p = letter + ':\\OKK-Backups';
-      try {
-        if (fs.existsSync(p)) dirs.push(p);
-      } catch (e) { /* drive not present */ }
+      try { if (fs.existsSync(p)) dirs.push(p); } catch (e) { /* drive not present */ }
     });
-    // Local fallback
     const local = path.join(os.homedir(), 'Documents', 'OKK-Backups');
     if (!dirs.includes(local)) dirs.push(local);
   } else {
@@ -103,15 +99,10 @@ function stampForFilename() {
 
 function createManualBackup() {
   const src = getDbPath();
-  if (!fs.existsSync(src)) {
-    throw new Error('Database file not found at ' + src);
-  }
-  // Prefer removable, fall back to Documents
+  if (!fs.existsSync(src)) throw new Error('Database file not found at ' + src);
   const dirs = getBackupDirs();
   const destDir = dirs[0];
-  if (!fs.existsSync(destDir)) {
-    fs.mkdirSync(destDir, { recursive: true });
-  }
+  if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
   const stamp = stampForFilename();
   const baseName = 'okk-stores_' + stamp + '.db';
   let copied = 0;
@@ -127,41 +118,26 @@ function createManualBackup() {
 
 async function restoreBackup(backupFilePath) {
   const dbPath = getDbPath();
-  if (!fs.existsSync(backupFilePath)) {
-    throw new Error('Backup file not found: ' + backupFilePath);
-  }
+  if (!fs.existsSync(backupFilePath)) throw new Error('Backup file not found: ' + backupFilePath);
 
-  // 1. Safety backup of the current DB
   const stamp = stampForFilename();
   const safetyName = 'PRE_RESTORE_' + stamp + '.db';
   const safetyDir = path.join(os.homedir(), 'Documents', 'OKK-Backups');
   if (!fs.existsSync(safetyDir)) fs.mkdirSync(safetyDir, { recursive: true });
-
   for (const suffix of ['', '-wal', '-shm']) {
     const f = dbPath + suffix;
-    if (fs.existsSync(f)) {
-      fs.copyFileSync(f, path.join(safetyDir, safetyName + suffix));
-    }
+    if (fs.existsSync(f)) fs.copyFileSync(f, path.join(safetyDir, safetyName + suffix));
   }
 
-  // 2. Close DB connection (if exposed)
-  try { repo.closeDb && repo.closeDb(); } catch (e) { /* not implemented */ }
-
-  // 3. Delete old DB and its WAL/SHM
   for (const suffix of ['', '-wal', '-shm']) {
     const f = dbPath + suffix;
     try { if (fs.existsSync(f)) fs.unlinkSync(f); } catch (e) { /* ignore */ }
   }
 
-  // 4. Copy backup DB into place
   fs.copyFileSync(backupFilePath, dbPath);
-
-  // Also copy matching -wal/-shm if they exist next to the backup
   for (const suffix of ['-wal', '-shm']) {
     const sidecar = backupFilePath + suffix;
-    if (fs.existsSync(sidecar)) {
-      fs.copyFileSync(sidecar, dbPath + suffix);
-    }
+    if (fs.existsSync(sidecar)) fs.copyFileSync(sidecar, dbPath + suffix);
   }
 
   return { success: true, safetyBackup: path.join(safetyDir, safetyName) };
@@ -233,26 +209,38 @@ function registerIpcHandlers() {
   ipcMain.handle('update:install', () => updater.quitAndInstall());
   ipcMain.handle('update:getVersion', () => app.getVersion());
 
+  // ---- Thermal Printer ----
+  ipcMain.handle('printer:print', async (_, { invoice, printerName }) => {
+    const printer = require('./printer');
+    return printer.printReceipt(invoice, printerName);
+  });
+  ipcMain.handle('printer:test', async (_, { printerName }) => {
+    const printer = require('./printer');
+    return printer.testPrint(printerName);
+  });
+  ipcMain.handle('printer:list', async () => {
+    if (process.platform !== 'win32') return [];
+    try {
+      const { exec } = require('child_process');
+      const util = require('util');
+      const execAsync = util.promisify(exec);
+      const { stdout } = await execAsync(
+        'powershell -Command "Get-CimInstance Win32_Printer | Select-Object -ExpandProperty Name"'
+      );
+      return stdout.trim().split('\n').map(function(s){ return s.trim(); }).filter(Boolean);
+    } catch (e) {
+      return [];
+    }
+  });
+
   // ---- Backup & Restore ----
   ipcMain.handle('backup:list', () => listBackups());
   ipcMain.handle('backup:create', () => createManualBackup());
   ipcMain.handle('backup:restore', async (_, filePath) => {
     const result = await restoreBackup(filePath);
-    // Relaunch app after a short delay so the response can reach the renderer
-    setTimeout(() => {
-      app.relaunch();
-      app.exit(0);
-    }, 800);
+    setTimeout(() => { app.relaunch(); app.exit(0); }, 800);
     return result;
   });
-  ipcMain.handle('backup:openFolder', (_, dir) => {
-    shell.openPath(dir);
-    return { success: true };
-  });
-  ipcMain.handle('backup:getInfo', () => {
-    return {
-      dbPath: getDbPath(),
-      dirs: getBackupDirs()
-    };
-  });
+  ipcMain.handle('backup:openFolder', (_, dir) => { shell.openPath(dir); return { success: true }; });
+  ipcMain.handle('backup:getInfo', () => ({ dbPath: getDbPath(), dirs: getBackupDirs() }));
 }

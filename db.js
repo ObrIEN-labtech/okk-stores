@@ -21,9 +21,18 @@ function initDatabase(userDataPath) {
     changed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(product_id) REFERENCES products(id) ON DELETE CASCADE)`);
 
+  db.exec(`CREATE TABLE IF NOT EXISTS customers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    phone TEXT UNIQUE,
+    notes TEXT DEFAULT '',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+
   db.exec(`CREATE TABLE IF NOT EXISTS invoices (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     invoice_no TEXT UNIQUE NOT NULL,
+    customer_id INTEGER,
     customer_name TEXT DEFAULT 'Walk-in Customer',
     customer_phone TEXT DEFAULT '',
     subtotal REAL NOT NULL DEFAULT 0,
@@ -37,7 +46,8 @@ function initDatabase(userDataPath) {
     fulfillment_status TEXT NOT NULL DEFAULT 'not_taken',
     notes TEXT DEFAULT '',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP)`);
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(customer_id) REFERENCES customers(id) ON DELETE SET NULL)`);
 
   db.exec(`CREATE TABLE IF NOT EXISTS invoice_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT, invoice_id INTEGER NOT NULL,
@@ -58,11 +68,35 @@ function initDatabase(userDataPath) {
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(product_id) REFERENCES products(id) ON DELETE CASCADE)`);
 
-  // Admin settings: key/value store for password hash
   db.exec(`CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY, value TEXT NOT NULL)`);
 
+  // ---- MIGRATIONS ----
+  runMigrations();
+
   return db;
 }
+
+function runMigrations() {
+  // Add customer_id column to invoices if it's missing (from older versions)
+  try {
+    const cols = db.prepare("PRAGMA table_info(invoices)").all();
+    const hasCustomerId = cols.some(c => c.name === 'customer_id');
+    if (!hasCustomerId) {
+      db.exec("ALTER TABLE invoices ADD COLUMN customer_id INTEGER");
+      console.log('[migration] Added customer_id column to invoices');
+    }
+  } catch (e) {
+    console.error('[migration] Failed to check invoices schema:', e.message);
+  }
+
+  // Ensure settings table exists (older versions may not have it)
+  try {
+    db.exec(`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)`);
+  } catch (e) {
+    console.error('[migration] Failed to ensure settings table:', e.message);
+  }
+}
+
 function getDb() { if (!db) throw new Error('DB not initialized'); return db; }
 module.exports = { initDatabase, getDb };

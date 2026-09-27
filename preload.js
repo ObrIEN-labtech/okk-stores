@@ -53,6 +53,11 @@ contextBridge.exposeInMainWorld('api', {
       return () => ipcRenderer.removeListener(channel, listener);
     }
   },
+  printer: {
+    print: (invoice, printerName) => ipcRenderer.invoke('printer:print', { invoice, printerName }),
+    test: (printerName) => ipcRenderer.invoke('printer:test', { printerName }),
+    list: () => ipcRenderer.invoke('printer:list')
+  },
   backup: {
     list: () => ipcRenderer.invoke('backup:list'),
     create: () => ipcRenderer.invoke('backup:create'),

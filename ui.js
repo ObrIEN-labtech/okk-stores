@@ -1,4 +1,4 @@
-console.log('>>> ui.js loaded (Dream POS + Backups)');
+console.log('>>> ui.js loaded (Dream POS + Backups + Printer)');
 var api = window.api;
 
 function UGX(n) { return 'UGX ' + Math.round(Number(n) || 0).toLocaleString(); }
@@ -81,14 +81,10 @@ function applyDarkMode(enabled) {
     localStorage.setItem('okk_dark', '0');
   }
 }
-function initDarkMode() {
-  var saved = localStorage.getItem('okk_dark');
-  applyDarkMode(saved === '1');
-}
+function initDarkMode() { applyDarkMode(localStorage.getItem('okk_dark') === '1'); }
 initDarkMode();
 document.getElementById('btn-dark-toggle').addEventListener('click', function() {
-  var isDark = document.body.classList.contains('dark-mode');
-  applyDarkMode(!isDark);
+  applyDarkMode(!document.body.classList.contains('dark-mode'));
 });
 
 // ============ AUTH ============
@@ -126,12 +122,7 @@ async function tryLogin() {
   } else {
     var ok = await api.auth.checkPassword(pw);
     if (ok) { showApp(); window.toast.success('Welcome back'); }
-    else {
-      err.style.color = '#EA5455';
-      err.textContent = 'Incorrect password';
-      document.getElementById('login-pass').value = '';
-      document.getElementById('login-pass').focus();
-    }
+    else { err.style.color = '#EA5455'; err.textContent = 'Incorrect password'; document.getElementById('login-pass').value = ''; document.getElementById('login-pass').focus(); }
   }
 }
 function showApp() {
@@ -209,8 +200,7 @@ async function loadDashboard() {
   var low = products.filter(function(p){ return p.stock <= p.reorder_level; });
   var tb = document.querySelector('#low-stock-table tbody');
   tb.innerHTML = low.length
-    ? low.map(function(p){ return '<tr><td><b>' + escapeHtml(p.name) + '</b></td><td>' + p.stock + '</td><td>' + p.reorder_level +
-        '</td><td><button class="btn btn-light btn-sm" onclick="restock(' + p.id + ')">Restock</button></td></tr>'; }).join('')
+    ? low.map(function(p){ return '<tr><td><b>' + escapeHtml(p.name) + '</b></td><td>' + p.stock + '</td><td>' + p.reorder_level + '</td><td><button class="btn btn-light btn-sm" onclick="restock(' + p.id + ')">Restock</button></td></tr>'; }).join('')
     : '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:32px;">All products sufficiently stocked.</td></tr>';
   var bw = await api.dashboard.bestWorst();
   if (bw.best) { document.getElementById('stat-best').textContent = bw.best.name; document.getElementById('stat-best-qty').textContent = bw.best.qty_sold + ' sold'; }
@@ -249,9 +239,7 @@ async function renderNotifications() {
   if (!low.length && aging.older === 0 && aging.d90 === 0 && aging.d60 === 0) {
     html += '<div class="notif-empty">All clear — no alerts</div>';
   } else {
-    low.slice(0, 5).forEach(function(p) {
-      html += '<div class="notif-item" onclick="gotoView(\'products\')"><span class="notif-dot warning"></span><span class="notif-body"><b>' + escapeHtml(p.name) + '</b> is low<small>Only ' + p.stock + ' left — reorder at ' + p.reorder_level + '</small></span></div>';
-    });
+    low.slice(0, 5).forEach(function(p) { html += '<div class="notif-item" onclick="gotoView(\'products\')"><span class="notif-dot warning"></span><span class="notif-body"><b>' + escapeHtml(p.name) + '</b> is low<small>Only ' + p.stock + ' left — reorder at ' + p.reorder_level + '</small></span></div>'; });
     if (aging.older > 0) html += '<div class="notif-item" onclick="gotoView(\'orders\')"><span class="notif-dot danger"></span><span class="notif-body"><b>Very old debt: ' + UGX(aging.older) + '</b><small>180+ days overdue</small></span></div>';
     if (aging.d90 > 0) html += '<div class="notif-item" onclick="gotoView(\'orders\')"><span class="notif-dot danger"></span><span class="notif-body"><b>Debt 91–180 days: ' + UGX(aging.d90) + '</b><small>Follow up with customers</small></span></div>';
     if (aging.d60 > 0) html += '<div class="notif-item" onclick="gotoView(\'orders\')"><span class="notif-dot warning"></span><span class="notif-body"><b>Debt 61–90 days: ' + UGX(aging.d60) + '</b><small>Consider sending reminders</small></span></div>';
@@ -394,9 +382,7 @@ function renderCustomerRows() {
 window.viewCustomer = async function(id) {
   var c = await api.customers.getById(id);
   var ordersHtml = c.invoices.length
-    ? c.invoices.map(function(i) {
-        return '<tr><td><b>' + escapeHtml(i.invoice_no) + '</b><div style="font-size:11px;color:var(--text-muted);">' + new Date(i.created_at).toLocaleDateString() + '</div></td><td>' + UGX(i.total) + '</td><td>' + UGX(i.amount_paid) + '</td><td style="color:' + (i.balance > 0 ? 'var(--danger)' : 'var(--success)') + ';">' + UGX(i.balance) + '</td><td><span class="pill ' + i.payment_status + '">' + i.payment_status + '</span></td><td><span class="pill ' + i.fulfillment_status + '">' + i.fulfillment_status.replace('_',' ') + '</span></td><td><button class="btn btn-light btn-sm" onclick="viewOrder(' + i.id + ')">View</button></td></tr>';
-      }).join('')
+    ? c.invoices.map(function(i) { return '<tr><td><b>' + escapeHtml(i.invoice_no) + '</b><div style="font-size:11px;color:var(--text-muted);">' + new Date(i.created_at).toLocaleDateString() + '</div></td><td>' + UGX(i.total) + '</td><td>' + UGX(i.amount_paid) + '</td><td style="color:' + (i.balance > 0 ? 'var(--danger)' : 'var(--success)') + ';">' + UGX(i.balance) + '</td><td><span class="pill ' + i.payment_status + '">' + i.payment_status + '</span></td><td><span class="pill ' + i.fulfillment_status + '">' + i.fulfillment_status.replace('_',' ') + '</span></td><td><button class="btn btn-light btn-sm" onclick="viewOrder(' + i.id + ')">View</button></td></tr>'; }).join('')
     : '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:24px;">No orders yet.</td></tr>';
   var summary = '<div class="customer-profile-summary"><div class="cell"><span>Lifetime Spend</span><b>' + UGX(c.lifetime_total) + '</b></div><div class="cell"><span>Total Paid</span><b style="color:var(--success);">' + UGX(c.lifetime_paid) + '</b></div><div class="cell"><span>Outstanding</span><b style="color:var(--danger);">' + UGX(c.outstanding) + '</b></div><div class="cell"><span>Orders</span><b>' + c.invoices.length + '</b></div></div>';
   document.getElementById('modal-title').textContent = 'Customer: ' + c.name;
@@ -619,9 +605,10 @@ function showReceipt(inv) {
     '<div class="status-row screen-only">' + paymentPill + fulfillPill + '</div>' +
     '<div class="divider"></div>' + items + '<div class="divider"></div>' + paymentBlock +
     '<div class="divider"></div><p style="text-align:center;font-size:11px;color:var(--text-muted);margin-top:10px;">Thank you for shopping with OKK Stores!</p>' +
-    '<div class="modal-actions screen-only" style="margin-top:18px;">' +
+    '<div class="modal-actions screen-only" style="margin-top:18px;flex-wrap:wrap;">' +
       (inv.fulfillment_status === 'not_taken' ? '<button class="btn btn-success" onclick="markTaken(' + inv.id + ')">Mark as Taken</button>' : '<button class="btn btn-light" onclick="markNotTaken(' + inv.id + ')">Mark as Not Taken</button>') +
       (inv.balance > 0 ? '<button class="btn btn-primary" onclick="recordPayment(' + inv.id + ',' + inv.balance + ')">Add Payment</button>' : '') +
+      '<button class="btn btn-info" onclick="printThermal(' + inv.id + ')">Print</button>' +
       '<button class="btn btn-wa" onclick="shareWhatsApp(' + inv.id + ')">Share to WhatsApp</button>' +
       '<button class="btn btn-light" onclick="downloadInvoicePDF(' + inv.id + ')">PDF</button>' +
     '</div>';
@@ -671,7 +658,7 @@ var CHART_COLORS = { primary: '#FE9F43', secondary: '#092C4C', success: '#28C76F
 function getRangeByKey(key) {
   var now = new Date();
   var from = new Date(), to = new Date();
-  if (key === 'today') { /* same day */ }
+  if (key === 'today') { }
   else if (key === '7d') from.setDate(now.getDate() - 6);
   else if (key === '30d') from.setDate(now.getDate() - 29);
   else if (key === 'month') from = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -855,40 +842,26 @@ async function loadBackups() {
   try {
     var info = await api.backup.getInfo();
     var list = await api.backup.list();
-
     document.getElementById('backup-count').textContent = list.length;
     document.getElementById('backup-primary-dir').textContent = info.dirs[0] || '—';
-
     if (list.length > 0) {
       var last = new Date(list[0].mtime);
-      document.getElementById('backup-last').textContent =
-        last.toLocaleDateString() + ' ' + last.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+      document.getElementById('backup-last').textContent = last.toLocaleDateString() + ' ' + last.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
     } else {
       document.getElementById('backup-last').textContent = 'No backups yet';
     }
-
     var tbody = document.querySelector('#backups-table tbody');
     if (!list.length) {
       tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:32px;">No backups found. Click "Backup Now" to create one.</td></tr>';
       return;
     }
-
     tbody.innerHTML = list.map(function(b) {
       var dt = new Date(b.mtime);
       var dateStr = dt.toLocaleDateString() + ' ' + dt.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
       var sizeKB = Math.round(b.size / 1024);
       var sizeStr = sizeKB < 1024 ? sizeKB + ' KB' : (sizeKB / 1024).toFixed(1) + ' MB';
       var locShort = b.dir.indexOf(':') > -1 ? b.dir.split('\\').slice(0,2).join('\\') : b.dir;
-      return '<tr>' +
-        '<td>' + dateStr + '</td>' +
-        '<td><b>' + escapeHtml(b.filename) + '</b></td>' +
-        '<td>' + sizeStr + '</td>' +
-        '<td style="font-size:12px;color:var(--text-muted);">' + escapeHtml(locShort) + '</td>' +
-        '<td>' +
-          '<button class="btn btn-light btn-sm" onclick="openBackupFolder(\'' + escapeAttr(b.dir) + '\')">Open</button>' +
-          '<button class="btn btn-danger btn-sm" onclick="restoreBackup(\'' + escapeAttr(b.fullPath) + '\')">Restore</button>' +
-        '</td>' +
-      '</tr>';
+      return '<tr><td>' + dateStr + '</td><td><b>' + escapeHtml(b.filename) + '</b></td><td>' + sizeStr + '</td><td style="font-size:12px;color:var(--text-muted);">' + escapeHtml(locShort) + '</td><td><button class="btn btn-light btn-sm" onclick="openBackupFolder(\'' + escapeAttr(b.dir) + '\')">Open</button><button class="btn btn-danger btn-sm" onclick="restoreBackup(\'' + escapeAttr(b.fullPath) + '\')">Restore</button></td></tr>';
     }).join('');
   } catch (e) {
     window.toast.error('Failed to load backups: ' + e.message);
@@ -903,27 +876,17 @@ window.openBackupFolder = async function(dirOrKey) {
     }
     if (!dir) { window.toast.warning('Folder path unavailable'); return; }
     await api.backup.openFolder(dir);
-  } catch (e) {
-    window.toast.error('Could not open folder: ' + e.message);
-  }
+  } catch (e) { window.toast.error('Could not open folder: ' + e.message); }
 };
 window.restoreBackup = async function(filePath) {
-  var confirmed = await showConfirm({
-    title: 'Restore this backup?',
-    message: 'This will replace ALL current data with the backup from ' + filePath.split(/[\\\/]/).pop() + '. A safety copy of the current data is saved first. The app will restart.',
-    confirmText: 'Restore & Restart',
-    danger: true,
-    icon: '⟲'
-  });
+  var confirmed = await showConfirm({ title: 'Restore this backup?', message: 'This will replace ALL current data with the backup from ' + filePath.split(/[\\\/]/).pop() + '. A safety copy of the current data is saved first. The app will restart.', confirmText: 'Restore & Restart', danger: true, icon: '⟲' });
   if (!confirmed) return;
   window.toast.info('Restoring backup...');
   try {
     var result = await api.backup.restore(filePath);
     window.toast.success('Backup restored. Restarting...');
     console.log('Safety backup saved at:', result.safetyBackup);
-  } catch (e) {
-    window.toast.error('Restore failed: ' + e.message);
-  }
+  } catch (e) { window.toast.error('Restore failed: ' + e.message); }
 };
 document.getElementById('btn-backup-now').addEventListener('click', async function() {
   var btn = this;
@@ -933,13 +896,57 @@ document.getElementById('btn-backup-now').addEventListener('click', async functi
     var result = await api.backup.create();
     window.toast.success('Backup created: ' + result.filename + ' (' + result.files + ' files)');
     await loadBackups();
-  } catch (e) {
-    window.toast.error('Backup failed: ' + e.message);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Backup Now';
-  }
+  } catch (e) { window.toast.error('Backup failed: ' + e.message); }
+  finally { btn.disabled = false; btn.textContent = 'Backup Now'; }
 });
+
+// ============ THERMAL PRINTER ============
+var PRINTER_KEY = 'okk_printer_name';
+function getSavedPrinter() { return localStorage.getItem(PRINTER_KEY) || 'POS-58'; }
+
+window.printThermal = async function(invoiceId) {
+  try {
+    var inv = await api.orders.getById(invoiceId);
+    var printerName = getSavedPrinter();
+    window.toast.info('Printing to ' + printerName + '...');
+    await api.printer.print(inv, printerName);
+    window.toast.success('Receipt sent to printer');
+  } catch (e) { window.toast.error('Print failed: ' + (e.message || e)); }
+};
+window.testPrinter = async function() {
+  try {
+    var printerName = getSavedPrinter();
+    await api.printer.test(printerName);
+    window.toast.success('Test page sent to ' + printerName);
+  } catch (e) { window.toast.error('Test print failed: ' + (e.message || e)); }
+};
+window.savePrinterName = function(name) {
+  if (!name || !name.trim()) { window.toast.warning('Please enter a printer name'); return; }
+  localStorage.setItem(PRINTER_KEY, name.trim());
+  window.toast.success('Printer set to: ' + name.trim());
+};
+window.loadPrinterList = async function() {
+  try {
+    var printers = await api.printer.list();
+    var el = document.getElementById('printer-list');
+    if (!el) { window.toast.warning('Printer UI not found'); return; }
+    if (!printers.length) {
+      el.innerHTML = 'No printers detected. Make sure your thermal printer is connected and installed in Windows.';
+      return;
+    }
+    el.innerHTML = 'Detected printers: ' + printers.map(function(p) {
+      var safe = p.replace(/'/g, "\\'");
+      return '<b style="cursor:pointer;color:var(--primary);" onclick="document.getElementById(\'printer-name-input\').value=\'' + safe + '\'">' + escapeHtml(p) + '</b>';
+    }).join(' &middot; ');
+    if (!localStorage.getItem(PRINTER_KEY)) {
+      document.getElementById('printer-name-input').value = printers[0];
+    }
+  } catch (e) { window.toast.error('Could not detect printers'); }
+};
+(function() {
+  var input = document.getElementById('printer-name-input');
+  if (input) input.value = getSavedPrinter();
+})();
 
 // ============ AUTO-UPDATER ============
 (async function initUpdater() {
