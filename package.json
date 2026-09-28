@@ -27,7 +27,7 @@
   },
   "build": {
     "appId": "com.okkstores.app",
-    "productName": "OKK Stores",
+    "productName": "OKK-Stores",
     "directories": {
       "output": "dist"
     },
