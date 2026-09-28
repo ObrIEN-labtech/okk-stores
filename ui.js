@@ -1,4 +1,4 @@
-console.log('>>> ui.js loaded (Dream POS + Backups + Printer)');
+console.log('>>> ui.js loaded (Dream POS + Backups + Printer + Debt)');
 var api = window.api;
 
 function UGX(n) { return 'UGX ' + Math.round(Number(n) || 0).toLocaleString(); }
@@ -209,10 +209,78 @@ async function loadDashboard() {
     document.getElementById('stat-worst').textContent = bw.worst.name;
     document.getElementById('stat-worst-qty').textContent = bw.worst.qty_sold + ' sold';
   } else { document.getElementById('stat-worst').textContent = '—'; document.getElementById('stat-worst-qty').textContent = ''; }
+  await loadTopDebtors();
 }
 window.restock = async function(id) {
   var qty = parseInt(prompt('Add how many units?') || 0);
   if (qty > 0) { await api.products.adjustStock(id, qty, 'Restock'); loadDashboard(); window.toast.success('Stock updated'); }
+};
+
+// ============ FOLLOW-UP / DEBTORS ============
+async function loadTopDebtors() {
+  try {
+    var debtors = await api.dashboard.topDebtors(5);
+    var tbody = document.querySelector('#top-debtors-table tbody');
+    if (!tbody) return;
+    if (!debtors.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px;">No overdue balances. Well done!</td></tr>';
+      return;
+    }
+    tbody.innerHTML = debtors.map(function(d) {
+      var days = d.days_overdue;
+      var daysClass = days > 90 ? 'var(--danger)' : (days > 30 ? 'var(--warning)' : 'var(--success)');
+      var phone = (d.phone || '').replace(/[^0-9]/g, '');
+      var waBtn = phone
+        ? '<button class="btn btn-wa btn-sm" onclick="sendDebtReminder(' + d.id + ',\'' + escapeAttr(d.name) + '\',' + d.total_owed + ',\'' + escapeAttr(d.phone || '') + '\')">WhatsApp</button>'
+        : '';
+      return '<tr>' +
+        '<td><b>' + escapeHtml(d.name) + '</b>' +
+          (d.phone ? '<div style="font-size:11px;color:var(--text-muted);">' + escapeHtml(d.phone) + '</div>' : '') + '</td>' +
+        '<td style="color:var(--danger);font-weight:700;">' + UGX(d.total_owed) + '</td>' +
+        '<td><span style="color:' + daysClass + ';font-weight:600;">' + days + ' days</span></td>' +
+        '<td>' + d.invoice_count + '</td>' +
+        '<td>' +
+          waBtn +
+          '<button class="btn btn-light btn-sm" onclick="viewCustomer(' + d.id + ')">View</button>' +
+          '<button class="btn btn-primary btn-sm" onclick="quickPayment(' + d.id + ')">Record Payment</button>' +
+        '</td>' +
+      '</tr>';
+    }).join('');
+  } catch (e) {
+    console.error('[debtors] Failed to load:', e);
+  }
+}
+window.sendDebtReminder = async function(customerId, customerName, amount, phone) {
+  var cleanPhone = (phone || '').replace(/[^0-9]/g, '');
+  if (!cleanPhone) { window.toast.warning('No phone number on file for this customer.'); return; }
+  var msg = '*OKK STORES*\nPlot 14 Keyo Road, Gulu City\nTel: 0772949121\n-------------------------\n\n';
+  msg += 'Dear ' + customerName + ',\n\n';
+  msg += 'This is a friendly reminder that you have an outstanding balance of:\n\n';
+  msg += '*UGX ' + Number(amount).toLocaleString() + '*\n\n';
+  msg += 'Please settle at your convenience. Thank you for shopping with us!\n\n';
+  msg += '— OKK Stores';
+  var url = 'https://wa.me/' + cleanPhone + '?text=' + encodeURIComponent(msg);
+  await window.api.system.openExternal(url);
+  window.toast.success('Opening WhatsApp...');
+};
+window.quickPayment = async function(customerId) {
+  try {
+    var c = await api.customers.getById(customerId);
+    if (!c || !c.invoices || !c.invoices.length) { window.toast.warning('No invoices for this customer.'); return; }
+    var unpaid = c.invoices.filter(function(i) { return i.balance > 0; });
+    if (!unpaid.length) { window.toast.info('No outstanding balance.'); return; }
+    if (unpaid.length === 1) { recordPayment(unpaid[0].id, unpaid[0].balance); return; }
+    var rows = unpaid.map(function(i) {
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">' +
+        '<div><b>' + escapeHtml(i.invoice_no) + '</b><div style="font-size:11px;color:var(--text-muted);">' + new Date(i.created_at).toLocaleDateString() + '</div></div>' +
+        '<div style="color:var(--danger);font-weight:700;">' + UGX(i.balance) + '</div>' +
+        '<button class="btn btn-primary btn-sm" onclick="closeModal();recordPayment(' + i.id + ',' + i.balance + ')">Pay</button>' +
+      '</div>';
+    }).join('');
+    openModal('Choose Invoice — ' + c.name, rows, async function() { /* no auto action */ });
+    document.getElementById('modal-confirm').style.display = 'none';
+    document.getElementById('modal-cancel').textContent = 'Close';
+  } catch (e) { window.toast.error('Failed: ' + e.message); }
 };
 
 // ============ NOTIFICATIONS ============
@@ -596,6 +664,16 @@ function showReceipt(inv) {
   } else {
     paymentBlock = '<div class="line"><span>Subtotal</span><span>' + UGX(inv.subtotal) + '</span></div>' + (inv.tax_amount > 0 ? '<div class="line"><span>Tax</span><span>' + UGX(inv.tax_amount) + '</span></div>' : '') + (inv.discount > 0 ? '<div class="line"><span>Discount</span><span>-' + UGX(inv.discount) + '</span></div>' : '') + '<div class="total-row"><span>TOTAL</span><span>' + UGX(inv.total) + '</span></div><div class="paid-big">✓ FULLY PAID</div>';
   }
+
+  var paymentHistory = '';
+  if (inv.payments && inv.payments.length > 0) {
+    paymentHistory = '<div class="divider"></div><div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;font-weight:700;margin-bottom:6px;">Payment History</div>';
+    paymentHistory += inv.payments.map(function(p) {
+      return '<div class="line" style="font-size:12px;"><span>' + new Date(p.created_at).toLocaleString() + '</span><span style="color:var(--success);">+ ' + UGX(p.amount) + '</span></div>' +
+        (p.note && p.note !== 'Initial payment' ? '<div class="line" style="font-size:11px;color:var(--text-muted);padding-left:8px;">' + escapeHtml(p.note) + '</div>' : '');
+    }).join('');
+  }
+
   document.getElementById('receipt-body').innerHTML =
     '<div class="header"><h2>OKK STORES</h2><p>Plot 14 Keyo Road, Gulu City</p><p>Tel: 0772949121</p><p style="margin-top:8px;">Sales Receipt</p></div>' +
     '<div class="line"><span>Invoice:</span><b>' + escapeHtml(inv.invoice_no) + '</b></div>' +
@@ -604,6 +682,7 @@ function showReceipt(inv) {
     (inv.customer_phone ? '<div class="line"><span>Phone:</span><span>' + escapeHtml(inv.customer_phone) + '</span></div>' : '') +
     '<div class="status-row screen-only">' + paymentPill + fulfillPill + '</div>' +
     '<div class="divider"></div>' + items + '<div class="divider"></div>' + paymentBlock +
+    paymentHistory +
     '<div class="divider"></div><p style="text-align:center;font-size:11px;color:var(--text-muted);margin-top:10px;">Thank you for shopping with OKK Stores!</p>' +
     '<div class="modal-actions screen-only" style="margin-top:18px;flex-wrap:wrap;">' +
       (inv.fulfillment_status === 'not_taken' ? '<button class="btn btn-success" onclick="markTaken(' + inv.id + ')">Mark as Taken</button>' : '<button class="btn btn-light" onclick="markNotTaken(' + inv.id + ')">Mark as Not Taken</button>') +
@@ -754,6 +833,15 @@ function downloadInvoicePDF(id) {
       doc.setFont(undefined, 'normal'); doc.text('Paid: UGX ' + inv.amount_paid.toLocaleString(), 140, y + 28);
       if (inv.balance > 0) { doc.setTextColor(234, 84, 85); doc.setFont(undefined, 'bold'); doc.text('BALANCE DUE: UGX ' + inv.balance.toLocaleString(), 140, y + 36); doc.setTextColor(0, 0, 0); }
       else { doc.setTextColor(40, 199, 111); doc.setFont(undefined, 'bold'); doc.text('FULLY PAID', 140, y + 36); doc.setTextColor(0, 0, 0); }
+      if (inv.payments && inv.payments.length) {
+        var py = y + 50;
+        doc.setFontSize(11); doc.setFont(undefined, 'bold');
+        doc.text('Payment History', 20, py);
+        doc.setFont(undefined, 'normal'); doc.setFontSize(9);
+        inv.payments.forEach(function(p, idx) {
+          doc.text(new Date(p.created_at).toLocaleString() + ' — UGX ' + p.amount.toLocaleString() + (p.note ? ' (' + p.note + ')' : ''), 20, py + 6 + (idx * 5));
+        });
+      }
       doc.setFontSize(9); doc.setFont(undefined, 'normal'); doc.text('Thank you for shopping with OKK Stores!', 105, 280, { align: 'center' });
       var res = await window.api.system.saveFile({ defaultName: inv.invoice_no + '.pdf', content: doc.output('datauristring').split(',')[1], encoding: 'base64' });
       if (res.success) window.toast.success('Saved: ' + res.path);
@@ -762,9 +850,11 @@ function downloadInvoicePDF(id) {
   })();
 }
 window.downloadInvoicePDF = downloadInvoicePDF;
+
 async function exportCustomerStatement(customerId) {
   try {
     var c = await api.customers.getById(customerId);
+    var payments = await api.customers.payments(customerId);
     var jsPDF = window.jspdf.jsPDF;
     var doc = new jsPDF();
     pdfHeader(doc);
@@ -773,18 +863,80 @@ async function exportCustomerStatement(customerId) {
     doc.text('Customer: ' + c.name, 20, 42);
     if (c.phone) doc.text('Phone: ' + c.phone, 20, 48);
     doc.text('Statement Date: ' + new Date().toLocaleString(), 20, c.phone ? 54 : 48);
-    var rows = c.invoices.map(function(i) { return [i.invoice_no, new Date(i.created_at).toLocaleDateString(), 'UGX ' + i.total.toLocaleString(), 'UGX ' + i.amount_paid.toLocaleString(), 'UGX ' + i.balance.toLocaleString(), i.payment_status]; });
-    doc.autoTable({ head: [['Invoice', 'Date', 'Total', 'Paid', 'Balance', 'Status']], body: rows, startY: 62, theme: 'striped', headStyles: { fillColor: [254, 159, 67] }, columnStyles: { 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' } } });
-    var y = doc.lastAutoTable.finalY + 12;
+
+    var y = c.phone ? 62 : 56;
+
     doc.setFontSize(11); doc.setFont(undefined, 'bold');
-    doc.text('Lifetime Billed: UGX ' + c.lifetime_total.toLocaleString(), 20, y);
-    doc.text('Lifetime Paid:   UGX ' + c.lifetime_paid.toLocaleString(), 20, y + 7);
-    doc.setTextColor(234, 84, 85); doc.text('Outstanding:     UGX ' + c.outstanding.toLocaleString(), 20, y + 14);
+    doc.text('Invoices', 20, y);
+    doc.setFont(undefined, 'normal');
+    var invRows = c.invoices.map(function(i) {
+      return [
+        i.invoice_no,
+        new Date(i.created_at).toLocaleDateString(),
+        'UGX ' + i.total.toLocaleString(),
+        'UGX ' + i.amount_paid.toLocaleString(),
+        'UGX ' + i.balance.toLocaleString(),
+        i.payment_status
+      ];
+    });
+    doc.autoTable({
+      head: [['Invoice', 'Date', 'Total', 'Paid', 'Balance', 'Status']],
+      body: invRows,
+      startY: y + 4,
+      theme: 'striped',
+      headStyles: { fillColor: [254, 159, 67] },
+      columnStyles: { 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' } }
+    });
+
+    y = doc.lastAutoTable.finalY + 12;
+    doc.setFontSize(11); doc.setFont(undefined, 'bold');
+    doc.text('Payments Received', 20, y);
+    doc.setFont(undefined, 'normal');
+    var payRows = payments.map(function(p) {
+      return [
+        new Date(p.created_at).toLocaleDateString() + ' ' + new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        p.invoice_no,
+        p.note || 'Payment',
+        'UGX ' + p.amount.toLocaleString()
+      ];
+    });
+    if (payRows.length === 0) payRows = [['—', '—', 'No payments recorded', '—']];
+    doc.autoTable({
+      head: [['Date', 'Invoice', 'Note', 'Amount']],
+      body: payRows,
+      startY: y + 4,
+      theme: 'striped',
+      headStyles: { fillColor: [40, 199, 111] },
+      columnStyles: { 3: { halign: 'right' } }
+    });
+
+    y = doc.lastAutoTable.finalY + 12;
+    var totalReceived = payments.reduce(function(s, p) { return s + p.amount; }, 0);
+    doc.setFontSize(11); doc.setFont(undefined, 'bold');
+    doc.text('Lifetime Billed:', 20, y);
+    doc.setFont(undefined, 'normal'); doc.text('UGX ' + c.lifetime_total.toLocaleString(), 80, y);
+    doc.setFont(undefined, 'bold'); doc.text('Total Payments Received:', 20, y + 7);
+    doc.setFont(undefined, 'normal'); doc.text('UGX ' + Math.round(totalReceived).toLocaleString(), 80, y + 7);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(234, 84, 85);
+    doc.text('Outstanding Balance:', 20, y + 14);
+    doc.text('UGX ' + c.outstanding.toLocaleString(), 80, y + 14);
     doc.setTextColor(0, 0, 0);
-    var res = await window.api.system.saveFile({ defaultName: 'Statement_' + c.name.replace(/[^a-z0-9]/gi, '_') + '.pdf', content: doc.output('datauristring').split(',')[1], encoding: 'base64' });
+
+    doc.setFontSize(9); doc.setFont(undefined, 'normal');
+    doc.text('This is a computer-generated statement from OKK Stores.', 105, 280, { align: 'center' });
+
+    var res = await window.api.system.saveFile({
+      defaultName: 'Statement_' + c.name.replace(/[^a-z0-9]/gi, '_') + '_' + new Date().toISOString().slice(0, 10) + '.pdf',
+      content: doc.output('datauristring').split(',')[1],
+      encoding: 'base64'
+    });
     if (res.success) window.toast.success('Saved: ' + res.path);
     else if (res.error) window.toast.error('Save failed: ' + res.error);
-  } catch (e) { window.toast.error(e.message || String(e)); }
+  } catch (e) {
+    console.error('[statement] Error:', e);
+    window.toast.error('Statement failed: ' + (e.message || e));
+  }
 }
 window.exportCustomerStatement = exportCustomerStatement;
 document.getElementById('btn-export-pdf').addEventListener('click', async function() {
@@ -903,7 +1055,6 @@ document.getElementById('btn-backup-now').addEventListener('click', async functi
 // ============ THERMAL PRINTER ============
 var PRINTER_KEY = 'okk_printer_name';
 function getSavedPrinter() { return localStorage.getItem(PRINTER_KEY) || 'POS-58'; }
-
 window.printThermal = async function(invoiceId) {
   try {
     var inv = await api.orders.getById(invoiceId);

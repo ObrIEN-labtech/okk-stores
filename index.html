@@ -67,19 +67,17 @@
         <input type="text" id="global-search" placeholder="Search products, customers, invoices..." autocomplete="off">
         <div id="global-search-results" class="search-dropdown hidden"></div>
       </div>
-
       <div class="topbar-actions">
         <button id="btn-notifications" class="icon-btn" title="Notifications">
           <span>◔</span>
           <span id="notif-badge" class="notif-badge hidden">0</span>
         </button>
         <div id="notification-dropdown" class="notif-dropdown hidden"></div>
-
         <div class="user-menu" id="user-menu">
           <div class="user-avatar">OK</div>
           <div class="user-info">
             <span class="user-name">Admin</span>
-            <span class="user-role" id="user-version">v2.4.0</span>
+            <span class="user-role" id="user-version">v2.6.0</span>
           </div>
         </div>
       </div>
@@ -89,10 +87,7 @@
 
       <section id="view-dashboard" class="view active">
         <div class="page-header">
-          <div>
-            <h1>Dashboard</h1>
-            <p class="breadcrumb">Welcome back to OKK Stores</p>
-          </div>
+          <div><h1>Dashboard</h1><p class="breadcrumb">Welcome back to OKK Stores</p></div>
           <span class="date-pill" id="today-date"></span>
         </div>
 
@@ -114,6 +109,27 @@
           <div class="card card-best"><div class="card-head"><span class="card-label">Most Selling Product</span><span class="card-icon card-icon-success">▲</span></div><div class="card-title" id="stat-best">—</div><div class="card-sub" id="stat-best-qty">0 sold</div></div>
           <div class="card card-worst"><div class="card-head"><span class="card-label">Least Selling Product</span><span class="card-icon card-icon-danger">▼</span></div><div class="card-title" id="stat-worst">—</div><div class="card-sub" id="stat-worst-qty">0 sold</div></div>
           <div class="card card-debt"><div class="card-head"><span class="card-label">Customer Debt</span><span class="card-icon card-icon-warning">◉</span></div><div class="card-title" id="stat-cust-debt">UGX 0</div><div class="card-sub" id="stat-cust-count">0 customers</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <span class="card-label">Follow-Up Today — Customers With Overdue Debt</span>
+            <button class="btn btn-light btn-sm" onclick="loadTopDebtors()">Refresh</button>
+          </div>
+          <div class="table-wrap">
+            <table id="top-debtors-table" class="data-table compact">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Balance Owed</th>
+                  <th>Oldest Invoice</th>
+                  <th>Invoices</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
 
         <div class="card">
@@ -296,27 +312,9 @@
         </div>
 
         <div class="stat-grid stat-grid-3" id="backup-info-cards">
-          <div class="stat-card stat-info">
-            <div class="stat-icon">⟲</div>
-            <div class="stat-content">
-              <span class="stat-label">Total Backups</span>
-              <span class="stat-value" id="backup-count">0</span>
-            </div>
-          </div>
-          <div class="stat-card stat-success">
-            <div class="stat-icon">✓</div>
-            <div class="stat-content">
-              <span class="stat-label">Last Backup</span>
-              <span class="stat-value" id="backup-last" style="font-size:14px;">—</span>
-            </div>
-          </div>
-          <div class="stat-card stat-primary">
-            <div class="stat-icon">📁</div>
-            <div class="stat-content">
-              <span class="stat-label">Primary Location</span>
-              <span class="stat-value" id="backup-primary-dir" style="font-size:12px;">—</span>
-            </div>
-          </div>
+          <div class="stat-card stat-info"><div class="stat-icon">⟲</div><div class="stat-content"><span class="stat-label">Total Backups</span><span class="stat-value" id="backup-count">0</span></div></div>
+          <div class="stat-card stat-success"><div class="stat-icon">✓</div><div class="stat-content"><span class="stat-label">Last Backup</span><span class="stat-value" id="backup-last" style="font-size:14px;">—</span></div></div>
+          <div class="stat-card stat-primary"><div class="stat-icon">📁</div><div class="stat-content"><span class="stat-label">Primary Location</span><span class="stat-value" id="backup-primary-dir" style="font-size:12px;">—</span></div></div>
         </div>
 
         <div class="card">
@@ -340,7 +338,8 @@
           <div style="margin-top:14px;">
             <button class="btn btn-light btn-sm" onclick="openBackupFolder('primary')">Open Backup Folder</button>
           </div>
-       
+        </div>
+
         <div class="card">
           <div class="card-head"><span class="card-label">Thermal Receipt Printer</span></div>
           <p style="color:var(--text-muted);font-size:13px;line-height:1.7;margin-bottom:12px;">

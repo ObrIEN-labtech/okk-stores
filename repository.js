@@ -129,6 +129,40 @@ function getCustomerAging() {
   }
   return buckets;
 }
+function getCustomerPayments(customerId) {
+  const db = getDb();
+  return db.prepare(`
+    SELECT p.id, p.amount, p.note, p.created_at,
+           i.invoice_no, i.total
+    FROM payments p
+    JOIN invoices i ON i.id = p.invoice_id
+    WHERE i.customer_id = ?
+    ORDER BY p.created_at DESC
+  `).all(customerId);
+}
+function getTopDebtors(limit) {
+  const db = getDb();
+  const now = Date.now();
+  const rows = db.prepare(`
+    SELECT c.id, c.name, c.phone,
+           COALESCE(SUM(i.balance), 0) AS total_owed,
+           MIN(i.created_at) AS oldest_invoice_date,
+           COUNT(*) AS invoice_count
+    FROM customers c
+    JOIN invoices i ON i.customer_id = c.id
+    WHERE i.balance > 0
+    GROUP BY c.id
+    HAVING total_owed > 0
+    ORDER BY total_owed DESC
+    LIMIT ?
+  `).all(limit || 5);
+  return rows.map(r => {
+    const daysOverdue = r.oldest_invoice_date
+      ? Math.floor((now - new Date(r.oldest_invoice_date).getTime()) / 86400000)
+      : 0;
+    return { ...r, days_overdue: daysOverdue };
+  });
+}
 
 // ============ HELPERS ============
 function computePaymentStatus(total, paid) {
@@ -320,6 +354,7 @@ module.exports = {
   getAllProducts, getProductById, findProductByName, addProduct, updateProduct, deleteProduct,
   getPriceHistory, adjustStock,
   getAllCustomers, getCustomerById, findOrCreateCustomer, updateCustomer, deleteCustomer, getCustomerAging,
+  getCustomerPayments, getTopDebtors,
   createOrder, addPayment, setFulfillment, getInvoiceById, getAllInvoices, getInvoicesByFilter,
   getDashboardStats, getBestWorstSellers,
   getSalesReport

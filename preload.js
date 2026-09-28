@@ -20,7 +20,8 @@ contextBridge.exposeInMainWorld('api', {
     getById: (id) => ipcRenderer.invoke('customers:getById', id),
     update: (id, fields) => ipcRenderer.invoke('customers:update', { id, fields }),
     delete: (id) => ipcRenderer.invoke('customers:delete', id),
-    aging: () => ipcRenderer.invoke('customers:aging')
+    aging: () => ipcRenderer.invoke('customers:aging'),
+    payments: (id) => ipcRenderer.invoke('customers:payments', id)
   },
   orders: {
     create: (d) => ipcRenderer.invoke('orders:create', d),
@@ -32,7 +33,8 @@ contextBridge.exposeInMainWorld('api', {
   },
   dashboard: {
     stats: () => ipcRenderer.invoke('dashboard:stats'),
-    bestWorst: () => ipcRenderer.invoke('dashboard:bestWorst')
+    bestWorst: () => ipcRenderer.invoke('dashboard:bestWorst'),
+    topDebtors: (limit) => ipcRenderer.invoke('dashboard:topDebtors', limit)
   },
   reports: {
     sales: (from, to) => ipcRenderer.invoke('reports:sales', { from, to })

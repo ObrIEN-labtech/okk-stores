@@ -78,11 +78,8 @@ function listBackups() {
         const full = path.join(dir, f);
         const st = fs.statSync(full);
         backups.push({
-          filename: f,
-          dir: dir,
-          fullPath: full,
-          size: st.size,
-          mtime: st.mtime.toISOString()
+          filename: f, dir: dir, fullPath: full,
+          size: st.size, mtime: st.mtime.toISOString()
         });
       }
     } catch (e) { /* permission or missing */ }
@@ -128,18 +125,15 @@ async function restoreBackup(backupFilePath) {
     const f = dbPath + suffix;
     if (fs.existsSync(f)) fs.copyFileSync(f, path.join(safetyDir, safetyName + suffix));
   }
-
   for (const suffix of ['', '-wal', '-shm']) {
     const f = dbPath + suffix;
     try { if (fs.existsSync(f)) fs.unlinkSync(f); } catch (e) { /* ignore */ }
   }
-
   fs.copyFileSync(backupFilePath, dbPath);
   for (const suffix of ['-wal', '-shm']) {
     const sidecar = backupFilePath + suffix;
     if (fs.existsSync(sidecar)) fs.copyFileSync(sidecar, dbPath + suffix);
   }
-
   return { success: true, safetyBackup: path.join(safetyDir, safetyName) };
 }
 
@@ -168,6 +162,7 @@ function registerIpcHandlers() {
   ipcMain.handle('customers:update', (_, { id, fields }) => repo.updateCustomer(id, fields));
   ipcMain.handle('customers:delete', (_, id) => repo.deleteCustomer(id));
   ipcMain.handle('customers:aging', () => repo.getCustomerAging());
+  ipcMain.handle('customers:payments', (_, id) => repo.getCustomerPayments(id));
 
   // ---- Orders ----
   ipcMain.handle('orders:create', (_, d) => repo.createOrder(d));
@@ -180,6 +175,7 @@ function registerIpcHandlers() {
   // ---- Dashboard + Reports ----
   ipcMain.handle('dashboard:stats', () => repo.getDashboardStats());
   ipcMain.handle('dashboard:bestWorst', () => repo.getBestWorstSellers());
+  ipcMain.handle('dashboard:topDebtors', (_, limit) => repo.getTopDebtors(limit || 5));
   ipcMain.handle('reports:sales', (_, { from, to }) => repo.getSalesReport(from, to));
 
   // ---- System ----
