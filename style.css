@@ -382,3 +382,51 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--p
   .toast-container { display: none !important; }
   .sidebar, .topbar { display: none !important; }
 }
+/* ========== CASH BOOK ========== */
+#view-cashbook .stat-grid { margin-bottom: 20px; }
+#view-cashbook .report-controls select { padding: 8px 12px; font-size: 13px; }
+#view-cashbook .report-controls label select { margin-left: 6px; }
+
+/* ============ BLACK & WHITE RECEIPT ============ */
+.receipt-modal,
+.receipt { color: #000 !important; }
+.receipt-modal .line, .receipt-modal .line span,
+.receipt-modal .total-row, .receipt-modal .total-row span,
+.receipt-modal .header h2, .receipt-modal .header p { color: #000 !important; }
+.receipt-modal .divider { border-top-color: #000 !important; }
+.receipt-modal .balance-big {
+  color: #000 !important; border-color: #000 !important; background: #fff !important;
+}
+.receipt-modal .paid-big {
+  color: #000 !important; border: 2px solid #000 !important;
+  padding: 10px !important; border-radius: 4px !important;
+}
+.receipt-modal .pill {
+  background: #fff !important; color: #000 !important; border: 1px solid #000 !important;
+}
+@media print {
+  .receipt-modal { color: #000 !important; background: #fff !important; }
+}
+
+/* ============ PREVIOUS BALANCE BLOCK ============ */
+.prev-balance-block {
+  background: #fff5eb;
+  border: 1px dashed #FF9F43;
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  margin: 10px 0;
+}
+body.dark-mode .prev-balance-block { background: #2A2118; border-color: #FF9F43; }
+.summary-row.prev-bal { color: #d97706; font-weight: 600; }
+.summary-row.grand-due {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--danger);
+  border-top: 1px solid var(--border);
+  margin-top: 6px;
+  padding-top: 10px;
+}
+
+/* ============ LEDGER ============ */
+.ledger-tx-in { color: #10b981; font-weight: 600; }
+.ledger-tx-out { color: #ef4444; font-weight: 600; }

@@ -1,4 +1,4 @@
-console.log('>>> ui.js loaded (Dream POS + Backups + Printer + Debt)');
+console.log('>>> ui.js loaded (v2.9.0 — variants + ledger + prev balance + BW receipt)');
 var api = window.api;
 
 function UGX(n) { return 'UGX ' + Math.round(Number(n) || 0).toLocaleString(); }
@@ -216,7 +216,7 @@ window.restock = async function(id) {
   if (qty > 0) { await api.products.adjustStock(id, qty, 'Restock'); loadDashboard(); window.toast.success('Stock updated'); }
 };
 
-// ============ FOLLOW-UP / DEBTORS ============
+// ============ FOLLOW-UP DEBTORS ============
 async function loadTopDebtors() {
   try {
     var debtors = await api.dashboard.topDebtors(5);
@@ -230,25 +230,18 @@ async function loadTopDebtors() {
       var days = d.days_overdue;
       var daysClass = days > 90 ? 'var(--danger)' : (days > 30 ? 'var(--warning)' : 'var(--success)');
       var phone = (d.phone || '').replace(/[^0-9]/g, '');
-      var waBtn = phone
-        ? '<button class="btn btn-wa btn-sm" onclick="sendDebtReminder(' + d.id + ',\'' + escapeAttr(d.name) + '\',' + d.total_owed + ',\'' + escapeAttr(d.phone || '') + '\')">WhatsApp</button>'
-        : '';
+      var waBtn = phone ? '<button class="btn btn-wa btn-sm" onclick="sendDebtReminder(' + d.id + ',\'' + escapeAttr(d.name) + '\',' + d.total_owed + ',\'' + escapeAttr(d.phone || '') + '\')">WhatsApp</button>' : '';
       return '<tr>' +
-        '<td><b>' + escapeHtml(d.name) + '</b>' +
-          (d.phone ? '<div style="font-size:11px;color:var(--text-muted);">' + escapeHtml(d.phone) + '</div>' : '') + '</td>' +
+        '<td><b>' + escapeHtml(d.name) + '</b>' + (d.phone ? '<div style="font-size:11px;color:var(--text-muted);">' + escapeHtml(d.phone) + '</div>' : '') + '</td>' +
         '<td style="color:var(--danger);font-weight:700;">' + UGX(d.total_owed) + '</td>' +
         '<td><span style="color:' + daysClass + ';font-weight:600;">' + days + ' days</span></td>' +
         '<td>' + d.invoice_count + '</td>' +
-        '<td>' +
-          waBtn +
+        '<td>' + waBtn +
           '<button class="btn btn-light btn-sm" onclick="viewCustomer(' + d.id + ')">View</button>' +
           '<button class="btn btn-primary btn-sm" onclick="quickPayment(' + d.id + ')">Record Payment</button>' +
-        '</td>' +
-      '</tr>';
+        '</td></tr>';
     }).join('');
-  } catch (e) {
-    console.error('[debtors] Failed to load:', e);
-  }
+  } catch (e) { console.error('[debtors]', e); }
 }
 window.sendDebtReminder = async function(customerId, customerName, amount, phone) {
   var cleanPhone = (phone || '').replace(/[^0-9]/g, '');
@@ -257,10 +250,8 @@ window.sendDebtReminder = async function(customerId, customerName, amount, phone
   msg += 'Dear ' + customerName + ',\n\n';
   msg += 'This is a friendly reminder that you have an outstanding balance of:\n\n';
   msg += '*UGX ' + Number(amount).toLocaleString() + '*\n\n';
-  msg += 'Please settle at your convenience. Thank you for shopping with us!\n\n';
-  msg += '— OKK Stores';
-  var url = 'https://wa.me/' + cleanPhone + '?text=' + encodeURIComponent(msg);
-  await window.api.system.openExternal(url);
+  msg += 'Please settle at your convenience. Thank you for shopping with us!\n\n— OKK Stores';
+  await window.api.system.openExternal('https://wa.me/' + cleanPhone + '?text=' + encodeURIComponent(msg));
   window.toast.success('Opening WhatsApp...');
 };
 window.quickPayment = async function(customerId) {
@@ -274,10 +265,9 @@ window.quickPayment = async function(customerId) {
       return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">' +
         '<div><b>' + escapeHtml(i.invoice_no) + '</b><div style="font-size:11px;color:var(--text-muted);">' + new Date(i.created_at).toLocaleDateString() + '</div></div>' +
         '<div style="color:var(--danger);font-weight:700;">' + UGX(i.balance) + '</div>' +
-        '<button class="btn btn-primary btn-sm" onclick="closeModal();recordPayment(' + i.id + ',' + i.balance + ')">Pay</button>' +
-      '</div>';
+        '<button class="btn btn-primary btn-sm" onclick="closeModal();recordPayment(' + i.id + ',' + i.balance + ')">Pay</button></div>';
     }).join('');
-    openModal('Choose Invoice — ' + c.name, rows, async function() { /* no auto action */ });
+    openModal('Choose Invoice — ' + c.name, rows, async function() {});
     document.getElementById('modal-confirm').style.display = 'none';
     document.getElementById('modal-cancel').textContent = 'Close';
   } catch (e) { window.toast.error('Failed: ' + e.message); }
@@ -297,7 +287,7 @@ async function updateNotificationBadge() {
     var badge = document.getElementById('notif-badge');
     if (total > 0) { badge.textContent = total; badge.classList.remove('hidden'); }
     else badge.classList.add('hidden');
-  } catch (e) { /* silent */ }
+  } catch (e) {}
 }
 async function renderNotifications() {
   var products = await api.products.getAll();
@@ -371,9 +361,11 @@ function renderProductRows() {
   tbody.innerHTML = f.length
     ? f.map(function(p) {
         var m = p.price > 0 ? (((p.price - p.cost_price) / p.price) * 100).toFixed(1) : '0.0';
-        return '<tr><td><b>' + escapeHtml(p.name) + '</b></td><td>' + escapeHtml(p.category || '') + '</td><td>' + UGX(p.cost_price) + '</td><td><b>' + UGX(p.price) + '</b></td><td>' + m + '%</td><td>' + p.stock + '</td><td><button class="btn btn-light btn-sm" onclick="editProduct(' + p.id + ')">Edit</button><button class="btn btn-light btn-sm" onclick="changePrice(' + p.id + ')">Price</button><button class="btn btn-danger btn-sm" onclick="deleteProduct(' + p.id + ')">Delete</button></td></tr>';
+        return '<tr><td><b>' + escapeHtml(p.name) + '</b></td><td>' + escapeHtml(p.category || '') + '</td><td>' + UGX(p.cost_price) + '</td><td><b>' + UGX(p.price) + '</b></td><td>' + m + '%</td><td>' + p.stock + '</td>' +
+          '<td><button class="btn btn-light btn-sm" onclick="manageVariants(' + p.id + ')">Variants</button></td>' +
+          '<td><button class="btn btn-light btn-sm" onclick="editProduct(' + p.id + ')">Edit</button><button class="btn btn-light btn-sm" onclick="changePrice(' + p.id + ')">Price</button><button class="btn btn-danger btn-sm" onclick="deleteProduct(' + p.id + ')">Delete</button></td></tr>';
       }).join('')
-    : '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:32px;">No products. Click "+ Add Product".</td></tr>';
+    : '<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:32px;">No products. Click "+ Add Product".</td></tr>';
 }
 function openModal(title, body, onConfirm) {
   document.getElementById('modal-title').textContent = title;
@@ -433,6 +425,84 @@ window.deleteProduct = async function(id) {
   window.toast.success('Product deleted');
 };
 
+// ============ PRODUCT VARIANTS ============
+window.manageVariants = async function(productId) {
+  var p = cachedProducts.find(function(x){ return x.id === productId; });
+  if (!p) return;
+  var variants = await api.variants.getByProduct(productId);
+
+  var rows = variants.map(function(v) {
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:6px;margin-bottom:6px;">' +
+      '<div><b>' + escapeHtml(v.label) + '</b>' +
+        '<div style="font-size:11px;color:var(--text-muted);">Price ' + UGX(v.price) + ' • Cost ' + UGX(v.cost_price) + ' • Stock ' + v.stock + '</div></div>' +
+      '<div>' +
+        '<button class="btn btn-light btn-sm" onclick="editVariant(' + productId + ',' + v.id + ')">Edit</button>' +
+        '<button class="btn btn-danger btn-sm" onclick="removeVariant(' + productId + ',' + v.id + ')">Delete</button>' +
+      '</div></div>';
+  }).join('');
+
+  var body = '<div style="margin-bottom:14px;">' +
+      '<p style="font-size:13px;color:var(--text-muted);line-height:1.6;">Add packaging variants for this product (e.g. Sugar in 25kg, 10kg, 1kg). When adding to a sale, you pick the variant.</p>' +
+    '</div>' +
+    (rows || '<p style="color:var(--text-muted);text-align:center;padding:16px;">No variants yet.</p>') +
+    '<button class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="addVariantForm(' + productId + ')">+ Add Variant</button>';
+
+  openModal('Variants — ' + p.name, body, async function() {});
+  document.getElementById('modal-confirm').style.display = 'none';
+  document.getElementById('modal-cancel').textContent = 'Close';
+};
+
+window.addVariantForm = function(productId) {
+  var body =
+    '<label>Label *<input id="v-label" placeholder="e.g. 25kg"></label>' +
+    '<label>Sale Price (UGX)<input id="v-price" type="number" step="1" value="0"></label>' +
+    '<label>Cost Price (UGX)<input id="v-cost" type="number" step="1" value="0"></label>' +
+    '<label>Stock<input id="v-stock" type="number" value="0"></label>';
+  openModal('Add Variant', body, async function() {
+    var label = document.getElementById('v-label').value.trim();
+    if (!label) throw new Error('Label is required');
+    await api.variants.add({
+      product_id: productId,
+      label: label,
+      price: parseInt(document.getElementById('v-price').value) || 0,
+      cost_price: parseInt(document.getElementById('v-cost').value) || 0,
+      stock: parseInt(document.getElementById('v-stock').value) || 0,
+      sort_order: 0
+    });
+    window.toast.success('Variant added: ' + label);
+    manageVariants(productId);
+  });
+};
+
+window.editVariant = async function(productId, variantId) {
+  var variants = await api.variants.getByProduct(productId);
+  var v = variants.find(function(x){ return x.id === variantId; });
+  if (!v) return;
+  var body =
+    '<label>Label<input id="v-label" value="' + escapeAttr(v.label) + '"></label>' +
+    '<label>Sale Price (UGX)<input id="v-price" type="number" step="1" value="' + v.price + '"></label>' +
+    '<label>Cost Price (UGX)<input id="v-cost" type="number" step="1" value="' + v.cost_price + '"></label>' +
+    '<label>Stock<input id="v-stock" type="number" value="' + v.stock + '"></label>';
+  openModal('Edit Variant', body, async function() {
+    await api.variants.update(variantId, {
+      label: document.getElementById('v-label').value.trim(),
+      price: parseInt(document.getElementById('v-price').value) || 0,
+      cost_price: parseInt(document.getElementById('v-cost').value) || 0,
+      stock: parseInt(document.getElementById('v-stock').value) || 0
+    });
+    window.toast.success('Variant updated');
+    manageVariants(productId);
+  });
+};
+
+window.removeVariant = async function(productId, variantId) {
+  var ok = await showConfirm({ title: 'Delete variant?', message: 'This cannot be undone.', confirmText: 'Delete', danger: true, icon: '!' });
+  if (!ok) return;
+  await api.variants.delete(variantId);
+  window.toast.success('Variant deleted');
+  manageVariants(productId);
+};
+
 // ============ CUSTOMERS ============
 var cachedCustomers = [];
 var customerSearchTerm = '';
@@ -443,26 +513,73 @@ function renderCustomerRows() {
   var tbody = document.querySelector('#customer-table tbody');
   tbody.innerHTML = f.length
     ? f.map(function(c) {
-        return '<tr><td><a href="#" onclick="viewCustomer(' + c.id + '); return false;" style="color:var(--primary);text-decoration:none;font-weight:600;">' + escapeHtml(c.name) + '</a></td><td>' + escapeHtml(c.phone || '—') + '</td><td>' + c.order_count + '</td><td><b>' + UGX(c.lifetime_total) + '</b></td><td style="color:' + (c.outstanding > 0 ? 'var(--danger)' : 'var(--success)') + ';font-weight:600;">' + UGX(c.outstanding) + '</td><td><button class="btn btn-light btn-sm" onclick="viewCustomer(' + c.id + ')">View</button><button class="btn btn-light btn-sm" onclick="editCustomer(' + c.id + ')">Edit</button><button class="btn btn-danger btn-sm" onclick="deleteCustomer(' + c.id + ')">Delete</button></td></tr>';
+        var cashBal = Number(c.cash_balance || 0);
+        var cashClass = cashBal > 0 ? 'var(--success)' : (cashBal < 0 ? 'var(--danger)' : 'var(--text-muted)');
+        return '<tr><td><a href="#" onclick="viewCustomer(' + c.id + '); return false;" style="color:var(--primary);text-decoration:none;font-weight:600;">' + escapeHtml(c.name) + '</a></td><td>' + escapeHtml(c.phone || '—') + '</td><td>' + c.order_count + '</td><td><b>' + UGX(c.lifetime_total) + '</b></td><td style="color:' + (c.outstanding > 0 ? 'var(--danger)' : 'var(--success)') + ';font-weight:600;">' + UGX(c.outstanding) + '</td><td style="color:' + cashClass + ';font-weight:600;">' + UGX(cashBal) + '</td><td><button class="btn btn-light btn-sm" onclick="viewCustomer(' + c.id + ')">View</button><button class="btn btn-light btn-sm" onclick="editCustomer(' + c.id + ')">Edit</button><button class="btn btn-danger btn-sm" onclick="deleteCustomer(' + c.id + ')">Delete</button></td></tr>';
       }).join('')
-    : '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:32px;">No customers yet.</td></tr>';
+    : '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:32px;">No customers yet.</td></tr>';
 }
 window.viewCustomer = async function(id) {
   var c = await api.customers.getById(id);
+  var ledger = await api.customers.ledger(id);
+
   var ordersHtml = c.invoices.length
     ? c.invoices.map(function(i) { return '<tr><td><b>' + escapeHtml(i.invoice_no) + '</b><div style="font-size:11px;color:var(--text-muted);">' + new Date(i.created_at).toLocaleDateString() + '</div></td><td>' + UGX(i.total) + '</td><td>' + UGX(i.amount_paid) + '</td><td style="color:' + (i.balance > 0 ? 'var(--danger)' : 'var(--success)') + ';">' + UGX(i.balance) + '</td><td><span class="pill ' + i.payment_status + '">' + i.payment_status + '</span></td><td><span class="pill ' + i.fulfillment_status + '">' + i.fulfillment_status.replace('_',' ') + '</span></td><td><button class="btn btn-light btn-sm" onclick="viewOrder(' + i.id + ')">View</button></td></tr>'; }).join('')
     : '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:24px;">No orders yet.</td></tr>';
-  var summary = '<div class="customer-profile-summary"><div class="cell"><span>Lifetime Spend</span><b>' + UGX(c.lifetime_total) + '</b></div><div class="cell"><span>Total Paid</span><b style="color:var(--success);">' + UGX(c.lifetime_paid) + '</b></div><div class="cell"><span>Outstanding</span><b style="color:var(--danger);">' + UGX(c.outstanding) + '</b></div><div class="cell"><span>Orders</span><b>' + c.invoices.length + '</b></div></div>';
+
+  var ledgerHtml = ledger.length
+    ? ledger.map(function(t) {
+        var cls = t.type === 'in' ? 'ledger-tx-in' : 'ledger-tx-out';
+        var sign = t.type === 'in' ? '+' : '-';
+        return '<tr><td>' + new Date(t.created_at).toLocaleString() + '</td><td>' + (t.type === 'in' ? 'Cash Received' : 'Cash Paid Out') + '</td><td>' + escapeHtml(t.note || '') + '</td><td class="' + cls + '">' + sign + ' ' + UGX(t.amount) + '</td></tr>';
+      }).join('')
+    : '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:16px;">No ledger entries yet.</td></tr>';
+
+  var cashBal = Number(c.cash_balance || 0);
+  var cashColor = cashBal > 0 ? 'var(--success)' : (cashBal < 0 ? 'var(--danger)' : 'var(--text)');
+
+  var summary = '<div class="customer-profile-summary">' +
+    '<div class="cell"><span>Lifetime Spend</span><b>' + UGX(c.lifetime_total) + '</b></div>' +
+    '<div class="cell"><span>Total Paid</span><b style="color:var(--success);">' + UGX(c.lifetime_paid) + '</b></div>' +
+    '<div class="cell"><span>Outstanding</span><b style="color:var(--danger);">' + UGX(c.outstanding) + '</b></div>' +
+    '<div class="cell"><span>Cash Balance</span><b style="color:' + cashColor + ';">' + UGX(cashBal) + '</b></div>' +
+    '</div>';
+
   document.getElementById('modal-title').textContent = 'Customer: ' + c.name;
   document.getElementById('modal-body').innerHTML =
-    '<div style="margin-bottom:16px;color:var(--text-muted);font-size:13px;display:flex;justify-content:space-between;align-items:center;"><span>Phone: ' + escapeHtml(c.phone || '—') + '</span><button class="btn btn-light btn-sm" onclick="exportCustomerStatement(' + c.id + ')">Export Statement PDF</button></div>' +
+    '<div style="margin-bottom:16px;color:var(--text-muted);font-size:13px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">' +
+      '<span>Phone: ' + escapeHtml(c.phone || '—') + '</span>' +
+      '<div>' +
+        '<button class="btn btn-light btn-sm" onclick="recordCashTx(' + c.id + ',\'in\')">Cash In</button>' +
+        '<button class="btn btn-light btn-sm" onclick="recordCashTx(' + c.id + ',\'out\')">Cash Out</button>' +
+        '<button class="btn btn-light btn-sm" onclick="exportCustomerStatement(' + c.id + ')">Statement PDF</button>' +
+      '</div>' +
+    '</div>' +
     summary +
     '<h3 style="font-size:12px;margin:20px 0 10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;font-weight:700;">Order History</h3>' +
-    '<div style="max-height:340px;overflow-y:auto;"><table class="data-table compact"><thead><tr><th>Invoice</th><th>Total</th><th>Paid</th><th>Balance</th><th>Payment</th><th>Fulfillment</th><th></th></tr></thead><tbody>' + ordersHtml + '</tbody></table></div>';
+    '<div style="max-height:260px;overflow-y:auto;"><table class="data-table compact"><thead><tr><th>Invoice</th><th>Total</th><th>Paid</th><th>Balance</th><th>Payment</th><th>Fulfillment</th><th></th></tr></thead><tbody>' + ordersHtml + '</tbody></table></div>' +
+    '<h3 style="font-size:12px;margin:20px 0 10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;font-weight:700;">Cash Ledger</h3>' +
+    '<div style="max-height:220px;overflow-y:auto;"><table class="data-table compact"><thead><tr><th>Date</th><th>Type</th><th>Note</th><th>Amount</th></tr></thead><tbody>' + ledgerHtml + '</tbody></table></div>';
+
   document.getElementById('modal').classList.remove('hidden');
   document.getElementById('modal-confirm').style.display = 'none';
   document.getElementById('modal-cancel').textContent = 'Close';
 };
+
+window.recordCashTx = function(customerId, type) {
+  var label = type === 'in' ? 'Cash Received' : 'Cash Paid Out';
+  var body =
+    '<label>Amount (UGX)<input id="ct-amount" type="number" step="1" value="0"></label>' +
+    '<label>Note<input id="ct-note" placeholder="Optional"></label>';
+  openModal(label, body, async function() {
+    var amt = parseInt(document.getElementById('ct-amount').value) || 0;
+    if (amt <= 0) throw new Error('Amount must be positive');
+    await api.customers.addTransaction(customerId, type, amt, document.getElementById('ct-note').value.trim());
+    window.toast.success(label + ': ' + UGX(amt));
+    setTimeout(function() { viewCustomer(customerId); }, 200);
+  });
+};
+
 window.editCustomer = function(id) {
   var c = cachedCustomers.find(function(x){ return x.id === id; }); if (!c) return;
   openModal('Edit Customer', '<label>Name<input id="c-name" value="' + escapeAttr(c.name) + '"></label><label>Phone<input id="c-phone" value="' + escapeAttr(c.phone || '') + '"></label>',
@@ -485,88 +602,188 @@ window.deleteCustomer = async function(id) {
 var saleProducts = [];
 var cart = [];
 var selectedCustomer = null;
-async function loadSaleProducts() { saleProducts = await api.products.getAll(); renderSaleProducts(''); renderCart(); }
+var cachedVariants = {};
+
+async function loadSaleProducts() {
+  saleProducts = await api.products.getAll();
+  cachedVariants = {};
+  for (var i = 0; i < saleProducts.length; i++) {
+    var vs = await api.variants.getByProduct(saleProducts[i].id);
+    if (vs && vs.length) cachedVariants[saleProducts[i].id] = vs;
+  }
+  renderSaleProducts(''); renderCart();
+}
+
 var saleSearchInput = document.getElementById('sale-search');
 var acBox = document.getElementById('autocomplete-box');
 var acIndex = -1;
+
 saleSearchInput.addEventListener('input', function(e) {
   var term = e.target.value.trim().toLowerCase();
   if (!term) { acBox.classList.add('hidden'); acIndex = -1; return; }
   var matches = saleProducts.filter(function(p){ return p.name.toLowerCase().includes(term); }).slice(0, 8);
   if (!matches.length) { acBox.classList.add('hidden'); return; }
-  acBox.innerHTML = matches.map(function(p, i) { return '<div class="item' + (i === 0 ? ' active' : '') + '" data-id="' + p.id + '">' + escapeHtml(p.name) + '<span class="meta">' + UGX(p.price) + ' • ' + p.stock + ' in stock</span></div>'; }).join('');
+  acBox.innerHTML = matches.map(function(p, i) {
+    var hasV = cachedVariants[p.id] && cachedVariants[p.id].length;
+    return '<div class="item' + (i === 0 ? ' active' : '') + '" data-id="' + p.id + '">' +
+      escapeHtml(p.name) + '<span class="meta">' + (hasV ? 'has variants • ' : UGX(p.price) + ' • ') + 'stock ' + p.stock + '</span></div>';
+  }).join('');
   acBox.classList.remove('hidden');
   acIndex = 0;
   acBox.querySelectorAll('.item').forEach(function(el) {
-    el.addEventListener('click', function() { addToCart(parseInt(el.dataset.id)); saleSearchInput.value=''; acBox.classList.add('hidden'); saleSearchInput.focus(); });
+    el.addEventListener('click', function() { pickProduct(parseInt(el.dataset.id)); saleSearchInput.value=''; acBox.classList.add('hidden'); saleSearchInput.focus(); });
   });
 });
+
 saleSearchInput.addEventListener('keydown', function(e) {
   if (e.key === 'Enter') {
     e.preventDefault();
     var term = saleSearchInput.value.trim().toLowerCase();
     if (!term) return;
     var activeEl = acBox.querySelector('.item.active');
-    if (activeEl) addToCart(parseInt(activeEl.dataset.id));
+    if (activeEl) pickProduct(parseInt(activeEl.dataset.id));
     else {
       var exact = saleProducts.find(function(p){ return p.name.toLowerCase() === term; });
-      if (exact) addToCart(exact.id);
-      else { var partial = saleProducts.find(function(p){ return p.name.toLowerCase().includes(term); }); if (partial) addToCart(partial.id); else window.toast.warning('No product matches "' + term + '"'); }
+      if (exact) pickProduct(exact.id);
+      else { var partial = saleProducts.find(function(p){ return p.name.toLowerCase().includes(term); }); if (partial) pickProduct(partial.id); else window.toast.warning('No product matches "' + term + '"'); }
     }
     saleSearchInput.value = ''; acBox.classList.add('hidden'); acIndex = -1;
   } else if (e.key === 'ArrowDown') { e.preventDefault(); var items = acBox.querySelectorAll('.item'); if (!items.length) return; if (acIndex >= 0) items[acIndex].classList.remove('active'); acIndex = Math.min(acIndex + 1, items.length - 1); items[acIndex].classList.add('active'); }
   else if (e.key === 'ArrowUp') { e.preventDefault(); var items2 = acBox.querySelectorAll('.item'); if (!items2.length) return; if (acIndex >= 0) items2[acIndex].classList.remove('active'); acIndex = Math.max(acIndex - 1, 0); items2[acIndex].classList.add('active'); }
   else if (e.key === 'Escape') { acBox.classList.add('hidden'); acIndex = -1; }
 });
+
+function pickProduct(productId) {
+  var variants = cachedVariants[productId];
+  if (variants && variants.length) {
+    showVariantPicker(productId, variants);
+  } else {
+    addToCart(productId, null);
+  }
+}
+
+function showVariantPicker(productId, variants) {
+  var p = saleProducts.find(function(x){ return x.id === productId; });
+  var body = '<p style="margin-bottom:12px;color:var(--text-muted);font-size:13px;">Choose a variant for <b>' + escapeHtml(p.name) + '</b>:</p>';
+  body += variants.map(function(v) {
+    return '<button class="btn btn-light btn-block" style="justify-content:space-between;margin-bottom:6px;text-align:left;padding:12px 16px;" onclick="closeModal();addToCart(' + productId + ',' + v.id + ')">' +
+      '<span><b>' + escapeHtml(v.label) + '</b> <span style="color:var(--text-muted);font-size:12px;">(' + v.stock + ' in stock)</span></span>' +
+      '<span style="color:var(--primary);font-weight:700;">' + UGX(v.price) + '</span></button>';
+  }).join('');
+  openModal('Select Variant', body, async function() {});
+  document.getElementById('modal-confirm').style.display = 'none';
+  document.getElementById('modal-cancel').textContent = 'Cancel';
+}
+
 function renderSaleProducts(term) {
   term = term || '';
   var f = saleProducts.filter(function(p){ return p.name.toLowerCase().includes(term); });
   var c = document.getElementById('sale-product-list');
   c.innerHTML = f.length
-    ? f.map(function(p) { return '<div class="product-card" onclick="addToCart(' + p.id + ')"><div class="name">' + escapeHtml(p.name) + '</div><div class="price">' + UGX(p.price) + '</div><div class="stock">' + p.stock + ' in stock</div></div>'; }).join('')
+    ? f.map(function(p) {
+        var variants = cachedVariants[p.id];
+        var variantBadge = variants && variants.length ? '<div class="stock" style="color:var(--primary);font-weight:600;">' + variants.length + ' variants</div>' : '';
+        var priceDisplay = variants && variants.length ? 'From ' + UGX(Math.min.apply(null, variants.map(function(v){ return v.price; }))) : UGX(p.price);
+        return '<div class="product-card" onclick="pickProduct(' + p.id + ')">' +
+          '<div class="name">' + escapeHtml(p.name) + '</div>' +
+          '<div class="price">' + priceDisplay + '</div>' +
+          '<div class="stock">' + p.stock + ' in stock</div>' +
+          variantBadge + '</div>';
+      }).join('')
     : '<p style="color:var(--text-muted);grid-column:1/-1;text-align:center;padding:24px;">No products. Add products first.</p>';
 }
-window.addToCart = function(pid) {
-  var p = saleProducts.find(function(x){ return x.id === pid; }); if (!p) return;
-  if (p.stock <= 0) { window.toast.warning('Out of stock'); return; }
-  var ex = cart.find(function(c){ return c.product_id === pid; });
-  if (ex) { if (ex.quantity + 1 > p.stock) { window.toast.warning('Only ' + p.stock + ' in stock'); return; } ex.quantity += 1; }
-  else cart.push({ product_id: p.id, name: p.name, price: p.price, quantity: 1, stock: p.stock });
+
+window.addToCart = function(productId, variantId) {
+  var p = saleProducts.find(function(x){ return x.id === productId; }); if (!p) return;
+  var name = p.name;
+  var price = p.price;
+  var stock = p.stock;
+  var variantLabel = '';
+  if (variantId) {
+    var v = (cachedVariants[productId] || []).find(function(x){ return x.id === variantId; });
+    if (!v) return;
+    name = p.name + ' (' + v.label + ')';
+    price = v.price;
+    stock = v.stock;
+    variantLabel = v.label;
+  }
+  if (stock <= 0) { window.toast.warning('Out of stock'); return; }
+  var key = variantId ? ('v' + variantId) : ('p' + productId);
+  var ex = cart.find(function(c){ return c.key === key; });
+  if (ex) {
+    if (ex.quantity + 1 > stock) { window.toast.warning('Only ' + stock + ' in stock'); return; }
+    ex.quantity += 1;
+  } else {
+    cart.push({ key: key, product_id: productId, variant_id: variantId || null, variant_label: variantLabel, name: name, price: price, quantity: 1, stock: stock });
+  }
   renderCart();
 };
-window.updateQty = function(pid, q) {
+window.updateQty = function(key, q) {
   q = parseInt(q) || 0;
-  var it = cart.find(function(c){ return c.product_id === pid; }); if (!it) return;
-  if (q <= 0) { removeFromCart(pid); return; }
+  var it = cart.find(function(c){ return c.key === key; }); if (!it) return;
+  if (q <= 0) { removeFromCart(key); return; }
   if (q > it.stock) { window.toast.warning('Only ' + it.stock + ' in stock'); q = it.stock; }
   it.quantity = q; renderCart();
 };
-window.removeFromCart = function(pid) { cart = cart.filter(function(c){ return c.product_id !== pid; }); renderCart(); };
+window.removeFromCart = function(key) { cart = cart.filter(function(c){ return c.key !== key; }); renderCart(); };
+
 function computeCartTotals() {
   var subtotal = cart.reduce(function(s, i){ return s + i.price * i.quantity; }, 0);
   var taxRate = parseFloat(document.getElementById('cart-tax').value) || 0;
   var discount = Math.max(0, parseInt(document.getElementById('cart-discount').value) || 0);
   var taxAmount = Math.round(subtotal * (taxRate / 100));
   var total = Math.max(0, subtotal + taxAmount - discount);
+  var prevBalance = selectedCustomer ? Math.round(selectedCustomer.outstanding || 0) : 0;
+  var payPrev = Math.max(0, parseInt(document.getElementById('cart-pay-prev')?.value || 0) || 0);
+  if (payPrev > prevBalance) payPrev = prevBalance;
+  var grandDue = prevBalance + total - payPrev;
   var paid = Math.max(0, parseInt(document.getElementById('cart-paid').value) || 0);
-  if (paid > total) paid = total;
-  return { subtotal: subtotal, taxRate: taxRate, taxAmount: taxAmount, discount: discount, total: total, paid: paid, balance: total - paid };
+  var paidForCurrent = Math.max(0, paid - payPrev);
+  var balance = Math.max(0, total - paidForCurrent);
+  return {
+    subtotal: subtotal, taxRate: taxRate, taxAmount: taxAmount, discount: discount,
+    total: total, prevBalance: prevBalance, payPrev: payPrev, grandDue: grandDue,
+    paid: paid, balance: balance
+  };
 }
+
 function renderCart() {
   var tbody = document.querySelector('#cart-table tbody');
   tbody.innerHTML = cart.length
-    ? cart.map(function(it) { return '<tr><td>' + escapeHtml(it.name) + '</td><td><input type="number" min="1" value="' + it.quantity + '" onchange="updateQty(' + it.product_id + ', this.value)"></td><td>' + UGX(it.price) + '</td><td><b>' + UGX(it.price * it.quantity) + '</b></td><td><button class="btn btn-danger btn-sm" onclick="removeFromCart(' + it.product_id + ')">x</button></td></tr>'; }).join('')
-    : '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px;">Cart is empty. Type product name above or click a card.</td></tr>';
+    ? cart.map(function(it) {
+        return '<tr><td>' + escapeHtml(it.name) + '</td>' +
+          '<td><input type="number" min="1" value="' + it.quantity + '" onchange="updateQty(\'' + it.key + '\', this.value)"></td>' +
+          '<td>' + UGX(it.price) + '</td><td><b>' + UGX(it.price * it.quantity) + '</b></td>' +
+          '<td><button class="btn btn-danger btn-sm" onclick="removeFromCart(\'' + it.key + '\')">x</button></td></tr>';
+      }).join('')
+    : '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:24px;">Cart is empty.</td></tr>';
   var t = computeCartTotals();
   document.getElementById('cart-subtotal').textContent = UGX(t.subtotal);
   document.getElementById('cart-total').textContent = UGX(t.total);
+
+  var prevRow = document.getElementById('prev-balance-row');
+  if (t.prevBalance > 0) {
+    prevRow.classList.remove('hidden');
+    document.getElementById('cart-prev-balance').textContent = UGX(t.prevBalance);
+    document.getElementById('cart-grand-due').textContent = UGX(t.grandDue);
+  } else {
+    prevRow.classList.add('hidden');
+    var pp = document.getElementById('cart-pay-prev');
+    if (pp) pp.value = 0;
+  }
   document.getElementById('cart-balance').textContent = UGX(t.balance);
 }
-['cart-tax','cart-discount','cart-paid'].forEach(function(id) { document.getElementById(id).addEventListener('input', renderCart); });
+
+['cart-tax','cart-discount','cart-paid','cart-pay-prev'].forEach(function(id) {
+  var el = document.getElementById(id);
+  if (el) el.addEventListener('input', renderCart);
+});
+
 var custSearchInput = document.getElementById('customer-search-input');
 var custAcBox = document.getElementById('customer-autocomplete');
 var selectedCustBox = document.getElementById('selected-customer');
 var custDebtBox = document.getElementById('customer-debt');
+
 custSearchInput.addEventListener('input', function(e) {
   var term = e.target.value.trim().toLowerCase();
   if (!term) { custAcBox.classList.add('hidden'); return; }
@@ -583,35 +800,73 @@ custSearchInput.addEventListener('keydown', function(e) {
     if (!term) return;
     var first = custAcBox.querySelector('.item');
     if (first) selectCustomer(parseInt(first.dataset.id));
-    else { selectedCustomer = { id: null, name: term, phone: '', outstanding: 0 }; showSelectedCustomer(); }
+    else {
+      selectedCustomer = { id: null, name: term, phone: '', outstanding: 0 };
+      showSelectedCustomer();
+    }
     custAcBox.classList.add('hidden');
   } else if (e.key === 'Escape') { custAcBox.classList.add('hidden'); }
 });
-function selectCustomer(id) { var c = cachedCustomers.find(function(x){ return x.id === id; }); if (!c) return; selectedCustomer = c; showSelectedCustomer(); custAcBox.classList.add('hidden'); custSearchInput.value = ''; }
+function selectCustomer(id) {
+  var c = cachedCustomers.find(function(x){ return x.id === id; }); if (!c) return;
+  selectedCustomer = c;
+  showSelectedCustomer();
+  custAcBox.classList.add('hidden');
+  custSearchInput.value = '';
+  renderCart();
+}
 function showSelectedCustomer() {
   if (!selectedCustomer) { selectedCustBox.classList.add('hidden'); custDebtBox.classList.add('hidden'); return; }
   selectedCustBox.classList.remove('hidden');
   document.getElementById('selected-customer-name').textContent = selectedCustomer.name;
   document.getElementById('selected-customer-phone').textContent = selectedCustomer.phone || '';
-  if (selectedCustomer.outstanding > 0) { custDebtBox.classList.remove('hidden'); custDebtBox.classList.remove('clean'); custDebtBox.textContent = 'Existing debt: ' + UGX(selectedCustomer.outstanding); }
-  else if (selectedCustomer.id) { custDebtBox.classList.remove('hidden'); custDebtBox.classList.add('clean'); custDebtBox.textContent = 'No outstanding balance'; }
-  else custDebtBox.classList.add('hidden');
+  if (selectedCustomer.outstanding > 0) {
+    custDebtBox.classList.remove('hidden'); custDebtBox.classList.remove('clean');
+    custDebtBox.textContent = 'Existing debt: ' + UGX(selectedCustomer.outstanding);
+  } else if (selectedCustomer.id) {
+    custDebtBox.classList.remove('hidden'); custDebtBox.classList.add('clean');
+    custDebtBox.textContent = 'No outstanding balance';
+  } else custDebtBox.classList.add('hidden');
 }
-document.getElementById('btn-customer-change').addEventListener('click', function() { selectedCustomer = null; selectedCustBox.classList.add('hidden'); custDebtBox.classList.add('hidden'); custSearchInput.focus(); });
-document.getElementById('btn-customer-clear').addEventListener('click', function() { selectedCustomer = null; custSearchInput.value = ''; selectedCustBox.classList.add('hidden'); custDebtBox.classList.add('hidden'); custAcBox.classList.add('hidden'); });
+document.getElementById('btn-customer-change').addEventListener('click', function() {
+  selectedCustomer = null;
+  selectedCustBox.classList.add('hidden');
+  custDebtBox.classList.add('hidden');
+  renderCart();
+  custSearchInput.focus();
+});
+document.getElementById('btn-customer-clear').addEventListener('click', function() {
+  selectedCustomer = null;
+  custSearchInput.value = '';
+  selectedCustBox.classList.add('hidden');
+  custDebtBox.classList.add('hidden');
+  custAcBox.classList.add('hidden');
+  renderCart();
+});
 document.getElementById('btn-checkout').addEventListener('click', async function() {
   if (!cart.length) { window.toast.warning('Cart is empty'); return; }
   var t = computeCartTotals();
   var taxRate = (t.taxRate || 0) / 100;
-  var customer_name = selectedCustomer ? selectedCustomer.name : '';
+  var typedName = (custSearchInput.value || '').trim();
+  var customer_name = selectedCustomer ? selectedCustomer.name : typedName;
   var customer_phone = selectedCustomer ? selectedCustomer.phone : '';
   var taken = document.getElementById('cart-taken').checked;
   try {
-    var inv = await api.orders.create({ customer_name: customer_name, customer_phone: customer_phone, items: cart.map(function(c){ return { product_id: c.product_id, quantity: c.quantity }; }), tax_rate: taxRate, discount: t.discount, amount_paid: t.paid, fulfillment_status: taken ? 'taken' : 'not_taken' });
+    var inv = await api.orders.create({
+      customer_name: customer_name,
+      customer_phone: customer_phone,
+      items: cart.map(function(c){ return { product_id: c.product_id, variant_id: c.variant_id, quantity: c.quantity }; }),
+      tax_rate: taxRate, discount: t.discount,
+      amount_paid: t.paid,
+      pay_previous: t.payPrev,
+      fulfillment_status: taken ? 'taken' : 'not_taken'
+    });
     cart = []; selectedCustomer = null;
     document.getElementById('cart-tax').value = 0;
     document.getElementById('cart-discount').value = 0;
     document.getElementById('cart-paid').value = 0;
+    var pp = document.getElementById('cart-pay-prev');
+    if (pp) pp.value = 0;
     document.getElementById('cart-taken').checked = false;
     custSearchInput.value = '';
     selectedCustBox.classList.add('hidden');
@@ -655,14 +910,43 @@ window.viewOrder = async function(id) { var inv = await api.orders.getById(id); 
 
 // ============ RECEIPT ============
 function showReceipt(inv) {
-  var items = inv.items.map(function(i) { return '<div class="line"><span>' + escapeHtml(i.product_name) + ' x ' + i.quantity + '</span><span>' + UGX(i.line_total) + '</span></div><div class="line" style="color:var(--text-light);font-size:11px;padding-left:8px;">@ ' + UGX(i.unit_price) + '</div>'; }).join('');
+  var items = inv.items.map(function(i) {
+    var label = i.variant_label ? ' (' + escapeHtml(i.variant_label) + ')' : '';
+    return '<div class="line"><span>' + escapeHtml(i.product_name) + label + ' x ' + i.quantity + '</span><span>' + UGX(i.line_total) + '</span></div>' +
+      '<div class="line" style="color:var(--text-light);font-size:11px;padding-left:8px;">@ ' + UGX(i.unit_price) + '</div>';
+  }).join('');
+
   var paymentPill = '<span class="pill ' + inv.payment_status + '">' + inv.payment_status + '</span>';
   var fulfillPill = '<span class="pill ' + inv.fulfillment_status + '">' + inv.fulfillment_status.replace('_',' ') + '</span>';
+
   var paymentBlock = '';
+  var hasPrev = (inv.previous_balance || 0) > 0;
+
+  if (hasPrev) {
+    paymentBlock +=
+      '<div class="divider"></div>' +
+      '<div class="line" style="color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:0.05em;font-weight:700;">Account Summary</div>' +
+      '<div class="line"><span>Previous Outstanding</span><span>' + UGX(inv.previous_balance) + '</span></div>';
+    if ((inv.paid_on_previous || 0) > 0) {
+      paymentBlock += '<div class="line"><span>Paid on Previous</span><span style="color:var(--success);">' + UGX(inv.paid_on_previous) + '</span></div>';
+    }
+    paymentBlock +=
+      '<div class="line"><span>This Order</span><span>' + UGX(inv.total) + '</span></div>' +
+      '<div class="line"><span><b>Total Due Now</b></span><span><b>' + UGX(inv.opening_total_due) + '</b></span></div>' +
+      '<div class="divider"></div>';
+  }
+
+  paymentBlock +=
+    '<div class="line"><span>Subtotal</span><span>' + UGX(inv.subtotal) + '</span></div>' +
+    (inv.tax_amount > 0 ? '<div class="line"><span>Tax</span><span>' + UGX(inv.tax_amount) + '</span></div>' : '') +
+    (inv.discount > 0 ? '<div class="line"><span>Discount</span><span>-' + UGX(inv.discount) + '</span></div>' : '') +
+    '<div class="line"><span>TOTAL</span><span><b>' + UGX(inv.total) + '</b></span></div>' +
+    '<div class="line"><span>Paid</span><span style="color:var(--success);">' + UGX(inv.amount_paid) + '</span></div>';
+
   if (inv.balance > 0) {
-    paymentBlock = '<div class="line"><span>Subtotal</span><span>' + UGX(inv.subtotal) + '</span></div>' + (inv.tax_amount > 0 ? '<div class="line"><span>Tax</span><span>' + UGX(inv.tax_amount) + '</span></div>' : '') + (inv.discount > 0 ? '<div class="line"><span>Discount</span><span>-' + UGX(inv.discount) + '</span></div>' : '') + '<div class="line"><span>TOTAL</span><span><b>' + UGX(inv.total) + '</b></span></div><div class="line"><span>Paid</span><span style="color:var(--success);">' + UGX(inv.amount_paid) + '</span></div><div class="balance-big">BALANCE DUE: ' + UGX(inv.balance) + '</div>';
+    paymentBlock += '<div class="balance-big">BALANCE DUE: ' + UGX(inv.balance) + '</div>';
   } else {
-    paymentBlock = '<div class="line"><span>Subtotal</span><span>' + UGX(inv.subtotal) + '</span></div>' + (inv.tax_amount > 0 ? '<div class="line"><span>Tax</span><span>' + UGX(inv.tax_amount) + '</span></div>' : '') + (inv.discount > 0 ? '<div class="line"><span>Discount</span><span>-' + UGX(inv.discount) + '</span></div>' : '') + '<div class="total-row"><span>TOTAL</span><span>' + UGX(inv.total) + '</span></div><div class="paid-big">✓ FULLY PAID</div>';
+    paymentBlock += '<div class="paid-big">✓ FULLY PAID</div>';
   }
 
   var paymentHistory = '';
@@ -681,12 +965,12 @@ function showReceipt(inv) {
     '<div class="line"><span>Customer:</span><span>' + escapeHtml(inv.customer_name) + '</span></div>' +
     (inv.customer_phone ? '<div class="line"><span>Phone:</span><span>' + escapeHtml(inv.customer_phone) + '</span></div>' : '') +
     '<div class="status-row screen-only">' + paymentPill + fulfillPill + '</div>' +
-    '<div class="divider"></div>' + items + '<div class="divider"></div>' + paymentBlock +
+    '<div class="divider"></div>' + items + '<div class="divider"></div>' +
+    paymentBlock +
     paymentHistory +
     '<div class="divider"></div><p style="text-align:center;font-size:11px;color:var(--text-muted);margin-top:10px;">Thank you for shopping with OKK Stores!</p>' +
     '<div class="modal-actions screen-only" style="margin-top:18px;flex-wrap:wrap;">' +
       (inv.fulfillment_status === 'not_taken' ? '<button class="btn btn-success" onclick="markTaken(' + inv.id + ')">Mark as Taken</button>' : '<button class="btn btn-light" onclick="markNotTaken(' + inv.id + ')">Mark as Not Taken</button>') +
-      (inv.balance > 0 ? '<button class="btn btn-primary" onclick="recordPayment(' + inv.id + ',' + inv.balance + ')">Add Payment</button>' : '') +
       '<button class="btn btn-info" onclick="printThermal(' + inv.id + ')">Print</button>' +
       '<button class="btn btn-wa" onclick="shareWhatsApp(' + inv.id + ')">Share to WhatsApp</button>' +
       '<button class="btn btn-light" onclick="downloadInvoicePDF(' + inv.id + ')">PDF</button>' +
@@ -737,7 +1021,7 @@ var CHART_COLORS = { primary: '#FE9F43', secondary: '#092C4C', success: '#28C76F
 function getRangeByKey(key) {
   var now = new Date();
   var from = new Date(), to = new Date();
-  if (key === 'today') { }
+  if (key === 'today') {}
   else if (key === '7d') from.setDate(now.getDate() - 6);
   else if (key === '30d') from.setDate(now.getDate() - 29);
   else if (key === 'month') from = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -805,7 +1089,7 @@ function renderDailyTable(daily) {
     : '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:24px;">No sales in this period.</td></tr>';
 }
 
-// ============ PDF / CSV EXPORTS ============
+// ============ PDF EXPORTS (B&W) ============
 function pdfHeader(doc) {
   doc.setFontSize(18); doc.setFont(undefined, 'bold'); doc.text('OKK STORES', 105, 15, { align: 'center' });
   doc.setFontSize(10); doc.setFont(undefined, 'normal'); doc.text('Plot 14 Keyo Road, Gulu City  •  Tel: 0772949121', 105, 21, { align: 'center' });
@@ -823,16 +1107,29 @@ function downloadInvoicePDF(id) {
       doc.text('Date: ' + new Date(inv.created_at).toLocaleString(), 20, 48);
       doc.text('Customer: ' + inv.customer_name, 20, 54);
       if (inv.customer_phone) doc.text('Phone: ' + inv.customer_phone, 20, 60);
-      var rows = inv.items.map(function(i) { return [i.product_name, String(i.quantity), 'UGX ' + i.unit_price.toLocaleString(), 'UGX ' + i.line_total.toLocaleString()]; });
-      doc.autoTable({ head: [['Item', 'Qty', 'Unit Price', 'Total']], body: rows, startY: 68, theme: 'striped', headStyles: { fillColor: [254, 159, 67] }, columnStyles: { 1: { halign: 'center' }, 2: { halign: 'right' }, 3: { halign: 'right' } } });
-      var y = doc.lastAutoTable.finalY + 8;
+      var rows = inv.items.map(function(i) { return [i.product_name + (i.variant_label ? ' (' + i.variant_label + ')' : ''), String(i.quantity), 'UGX ' + i.unit_price.toLocaleString(), 'UGX ' + i.line_total.toLocaleString()]; });
+      doc.autoTable({ head: [['Item', 'Qty', 'Unit Price', 'Total']], body: rows, startY: 68, theme: 'grid', headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.3 }, bodyStyles: { textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.1 }, columnStyles: { 1: { halign: 'center' }, 2: { halign: 'right' }, 3: { halign: 'right' } } });
+      var y = doc.lastAutoTable.finalY + 10;
+
+      if ((inv.previous_balance || 0) > 0) {
+        doc.text('Previous Outstanding: UGX ' + inv.previous_balance.toLocaleString(), 20, y);
+        if ((inv.paid_on_previous || 0) > 0) doc.text('Paid on Previous: UGX ' + inv.paid_on_previous.toLocaleString(), 20, y + 6);
+        y += 12;
+      }
+
       doc.text('Subtotal: UGX ' + inv.subtotal.toLocaleString(), 140, y);
       if (inv.tax_amount > 0) doc.text('Tax: UGX ' + inv.tax_amount.toLocaleString(), 140, y + 6);
       if (inv.discount > 0) doc.text('Discount: -UGX ' + inv.discount.toLocaleString(), 140, y + 12);
       doc.setFont(undefined, 'bold'); doc.text('TOTAL: UGX ' + inv.total.toLocaleString(), 140, y + 20);
       doc.setFont(undefined, 'normal'); doc.text('Paid: UGX ' + inv.amount_paid.toLocaleString(), 140, y + 28);
-      if (inv.balance > 0) { doc.setTextColor(234, 84, 85); doc.setFont(undefined, 'bold'); doc.text('BALANCE DUE: UGX ' + inv.balance.toLocaleString(), 140, y + 36); doc.setTextColor(0, 0, 0); }
-      else { doc.setTextColor(40, 199, 111); doc.setFont(undefined, 'bold'); doc.text('FULLY PAID', 140, y + 36); doc.setTextColor(0, 0, 0); }
+      if (inv.balance > 0) {
+        doc.setFont(undefined, 'bold');
+        doc.text('BALANCE DUE: UGX ' + inv.balance.toLocaleString(), 140, y + 36);
+      } else {
+        doc.setFont(undefined, 'bold');
+        doc.text('FULLY PAID', 140, y + 36);
+      }
+
       if (inv.payments && inv.payments.length) {
         var py = y + 50;
         doc.setFontSize(11); doc.setFont(undefined, 'bold');
@@ -842,7 +1139,9 @@ function downloadInvoicePDF(id) {
           doc.text(new Date(p.created_at).toLocaleString() + ' — UGX ' + p.amount.toLocaleString() + (p.note ? ' (' + p.note + ')' : ''), 20, py + 6 + (idx * 5));
         });
       }
-      doc.setFontSize(9); doc.setFont(undefined, 'normal'); doc.text('Thank you for shopping with OKK Stores!', 105, 280, { align: 'center' });
+      doc.setFontSize(9); doc.setFont(undefined, 'normal');
+      doc.text('Thank you for shopping with OKK Stores!', 105, 280, { align: 'center' });
+
       var res = await window.api.system.saveFile({ defaultName: inv.invoice_no + '.pdf', content: doc.output('datauristring').split(',')[1], encoding: 'base64' });
       if (res.success) window.toast.success('Saved: ' + res.path);
       else if (res.error) window.toast.error('Save failed: ' + res.error);
@@ -855,6 +1154,7 @@ async function exportCustomerStatement(customerId) {
   try {
     var c = await api.customers.getById(customerId);
     var payments = await api.customers.payments(customerId);
+    var ledger = await api.customers.ledger(customerId);
     var jsPDF = window.jspdf.jsPDF;
     var doc = new jsPDF();
     pdfHeader(doc);
@@ -870,45 +1170,29 @@ async function exportCustomerStatement(customerId) {
     doc.text('Invoices', 20, y);
     doc.setFont(undefined, 'normal');
     var invRows = c.invoices.map(function(i) {
-      return [
-        i.invoice_no,
-        new Date(i.created_at).toLocaleDateString(),
-        'UGX ' + i.total.toLocaleString(),
-        'UGX ' + i.amount_paid.toLocaleString(),
-        'UGX ' + i.balance.toLocaleString(),
-        i.payment_status
-      ];
+      return [i.invoice_no, new Date(i.created_at).toLocaleDateString(), 'UGX ' + i.total.toLocaleString(), 'UGX ' + i.amount_paid.toLocaleString(), 'UGX ' + i.balance.toLocaleString(), i.payment_status];
     });
-    doc.autoTable({
-      head: [['Invoice', 'Date', 'Total', 'Paid', 'Balance', 'Status']],
-      body: invRows,
-      startY: y + 4,
-      theme: 'striped',
-      headStyles: { fillColor: [254, 159, 67] },
-      columnStyles: { 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' } }
-    });
+    doc.autoTable({ head: [['Invoice', 'Date', 'Total', 'Paid', 'Balance', 'Status']], body: invRows, startY: y + 4, theme: 'grid', headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.3 }, columnStyles: { 2: { halign: 'right' }, 3: { halign: 'right' }, 4: { halign: 'right' } } });
 
     y = doc.lastAutoTable.finalY + 12;
     doc.setFontSize(11); doc.setFont(undefined, 'bold');
     doc.text('Payments Received', 20, y);
     doc.setFont(undefined, 'normal');
     var payRows = payments.map(function(p) {
-      return [
-        new Date(p.created_at).toLocaleDateString() + ' ' + new Date(p.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        p.invoice_no,
-        p.note || 'Payment',
-        'UGX ' + p.amount.toLocaleString()
-      ];
+      return [new Date(p.created_at).toLocaleDateString(), p.invoice_no, p.note || 'Payment', 'UGX ' + p.amount.toLocaleString()];
     });
-    if (payRows.length === 0) payRows = [['—', '—', 'No payments recorded', '—']];
-    doc.autoTable({
-      head: [['Date', 'Invoice', 'Note', 'Amount']],
-      body: payRows,
-      startY: y + 4,
-      theme: 'striped',
-      headStyles: { fillColor: [40, 199, 111] },
-      columnStyles: { 3: { halign: 'right' } }
+    if (!payRows.length) payRows = [['—', '—', 'No payments recorded', '—']];
+    doc.autoTable({ head: [['Date', 'Invoice', 'Note', 'Amount']], body: payRows, startY: y + 4, theme: 'grid', headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.3 }, columnStyles: { 3: { halign: 'right' } } });
+
+    y = doc.lastAutoTable.finalY + 12;
+    doc.setFontSize(11); doc.setFont(undefined, 'bold');
+    doc.text('Cash Ledger', 20, y);
+    doc.setFont(undefined, 'normal');
+    var ledgerRows = ledger.map(function(t) {
+      return [new Date(t.created_at).toLocaleDateString(), t.type === 'in' ? 'Cash In' : 'Cash Out', t.note || '', (t.type === 'in' ? '+' : '-') + ' UGX ' + t.amount.toLocaleString()];
     });
+    if (!ledgerRows.length) ledgerRows = [['—', '—', 'No cash entries', '—']];
+    doc.autoTable({ head: [['Date', 'Type', 'Note', 'Amount']], body: ledgerRows, startY: y + 4, theme: 'grid', headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.3 }, columnStyles: { 3: { halign: 'right' } } });
 
     y = doc.lastAutoTable.finalY + 12;
     var totalReceived = payments.reduce(function(s, p) { return s + p.amount; }, 0);
@@ -917,11 +1201,10 @@ async function exportCustomerStatement(customerId) {
     doc.setFont(undefined, 'normal'); doc.text('UGX ' + c.lifetime_total.toLocaleString(), 80, y);
     doc.setFont(undefined, 'bold'); doc.text('Total Payments Received:', 20, y + 7);
     doc.setFont(undefined, 'normal'); doc.text('UGX ' + Math.round(totalReceived).toLocaleString(), 80, y + 7);
-    doc.setFont(undefined, 'bold');
-    doc.setTextColor(234, 84, 85);
-    doc.text('Outstanding Balance:', 20, y + 14);
+    doc.setFont(undefined, 'bold'); doc.text('Outstanding Balance:', 20, y + 14);
     doc.text('UGX ' + c.outstanding.toLocaleString(), 80, y + 14);
-    doc.setTextColor(0, 0, 0);
+    doc.setFont(undefined, 'bold'); doc.text('Cash Balance:', 20, y + 21);
+    doc.text('UGX ' + Number(c.cash_balance || 0).toLocaleString(), 80, y + 21);
 
     doc.setFontSize(9); doc.setFont(undefined, 'normal');
     doc.text('This is a computer-generated statement from OKK Stores.', 105, 280, { align: 'center' });
@@ -933,12 +1216,10 @@ async function exportCustomerStatement(customerId) {
     });
     if (res.success) window.toast.success('Saved: ' + res.path);
     else if (res.error) window.toast.error('Save failed: ' + res.error);
-  } catch (e) {
-    console.error('[statement] Error:', e);
-    window.toast.error('Statement failed: ' + (e.message || e));
-  }
+  } catch (e) { console.error('[statement]', e); window.toast.error('Statement failed: ' + (e.message || e)); }
 }
 window.exportCustomerStatement = exportCustomerStatement;
+
 document.getElementById('btn-export-pdf').addEventListener('click', async function() {
   if (!currentReport) { window.toast.warning('Load a report first'); return; }
   try {
@@ -950,20 +1231,21 @@ document.getElementById('btn-export-pdf').addEventListener('click', async functi
     doc.setFontSize(10); doc.setFont(undefined, 'normal');
     doc.text('Period: ' + data.range.from + ' to ' + data.range.to, 105, 36, { align: 'center' });
     var summaryRows = [['Total Billed', 'UGX ' + data.totals.billed.toLocaleString()],['Total Collected', 'UGX ' + data.totals.collected.toLocaleString()],['Outstanding', 'UGX ' + data.totals.outstanding.toLocaleString()],['Cost of Goods Sold', 'UGX ' + data.totals.cogs.toLocaleString()],['Estimated Profit', 'UGX ' + data.totals.profit.toLocaleString()],['Number of Orders', String(data.totals.orders)],['Average Order Value', 'UGX ' + data.totals.avgOrder.toLocaleString()]];
-    doc.autoTable({ head: [['Summary', 'Value']], body: summaryRows, startY: 44, theme: 'grid', headStyles: { fillColor: [254, 159, 67] }, columnStyles: { 1: { halign: 'right' } } });
+    doc.autoTable({ head: [['Summary', 'Value']], body: summaryRows, startY: 44, theme: 'grid', headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.3 }, columnStyles: { 1: { halign: 'right' } } });
     if (data.topProducts.length) {
       var pRows = data.topProducts.map(function(p) { return [p.product_name, String(p.qty), 'UGX ' + p.revenue.toLocaleString()]; });
-      doc.autoTable({ head: [['Top Products', 'Qty Sold', 'Revenue']], body: pRows, startY: doc.lastAutoTable.finalY + 10, theme: 'striped', headStyles: { fillColor: [115, 103, 240] }, columnStyles: { 1: { halign: 'center' }, 2: { halign: 'right' } } });
+      doc.autoTable({ head: [['Top Products', 'Qty Sold', 'Revenue']], body: pRows, startY: doc.lastAutoTable.finalY + 10, theme: 'grid', headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.3 }, columnStyles: { 1: { halign: 'center' }, 2: { halign: 'right' } } });
     }
     if (data.topCustomers.length) {
       var cRows = data.topCustomers.map(function(c) { return [c.name, String(c.orders), 'UGX ' + c.billed.toLocaleString(), 'UGX ' + c.balance.toLocaleString()]; });
-      doc.autoTable({ head: [['Top Customers', 'Orders', 'Billed', 'Balance']], body: cRows, startY: doc.lastAutoTable.finalY + 10, theme: 'striped', headStyles: { fillColor: [40, 199, 111] }, columnStyles: { 1: { halign: 'center' }, 2: { halign: 'right' }, 3: { halign: 'right' } } });
+      doc.autoTable({ head: [['Top Customers', 'Orders', 'Billed', 'Balance']], body: cRows, startY: doc.lastAutoTable.finalY + 10, theme: 'grid', headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.3 }, columnStyles: { 1: { halign: 'center' }, 2: { halign: 'right' }, 3: { halign: 'right' } } });
     }
     var res = await window.api.system.saveFile({ defaultName: 'Sales_Report_' + data.range.from + '_to_' + data.range.to + '.pdf', content: doc.output('datauristring').split(',')[1], encoding: 'base64' });
     if (res.success) window.toast.success('Report saved: ' + res.path);
     else if (res.error) window.toast.error('Save failed: ' + res.error);
   } catch (e) { window.toast.error(e.message || String(e)); }
 });
+
 document.getElementById('btn-export-csv').addEventListener('click', async function() {
   if (!currentReport) { window.toast.warning('Load a report first'); return; }
   var data = currentReport;
@@ -999,14 +1281,9 @@ async function loadBackups() {
     if (list.length > 0) {
       var last = new Date(list[0].mtime);
       document.getElementById('backup-last').textContent = last.toLocaleDateString() + ' ' + last.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-    } else {
-      document.getElementById('backup-last').textContent = 'No backups yet';
-    }
+    } else document.getElementById('backup-last').textContent = 'No backups yet';
     var tbody = document.querySelector('#backups-table tbody');
-    if (!list.length) {
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:32px;">No backups found. Click "Backup Now" to create one.</td></tr>';
-      return;
-    }
+    if (!list.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:32px;">No backups found. Click "Backup Now".</td></tr>'; return; }
     tbody.innerHTML = list.map(function(b) {
       var dt = new Date(b.mtime);
       var dateStr = dt.toLocaleDateString() + ' ' + dt.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
@@ -1015,17 +1292,12 @@ async function loadBackups() {
       var locShort = b.dir.indexOf(':') > -1 ? b.dir.split('\\').slice(0,2).join('\\') : b.dir;
       return '<tr><td>' + dateStr + '</td><td><b>' + escapeHtml(b.filename) + '</b></td><td>' + sizeStr + '</td><td style="font-size:12px;color:var(--text-muted);">' + escapeHtml(locShort) + '</td><td><button class="btn btn-light btn-sm" onclick="openBackupFolder(\'' + escapeAttr(b.dir) + '\')">Open</button><button class="btn btn-danger btn-sm" onclick="restoreBackup(\'' + escapeAttr(b.fullPath) + '\')">Restore</button></td></tr>';
     }).join('');
-  } catch (e) {
-    window.toast.error('Failed to load backups: ' + e.message);
-  }
+  } catch (e) { window.toast.error('Failed to load backups: ' + e.message); }
 }
 window.openBackupFolder = async function(dirOrKey) {
   try {
     var dir = dirOrKey;
-    if (dirOrKey === 'primary') {
-      var info = await api.backup.getInfo();
-      dir = info.dirs[0];
-    }
+    if (dirOrKey === 'primary') { var info = await api.backup.getInfo(); dir = info.dirs[0]; }
     if (!dir) { window.toast.warning('Folder path unavailable'); return; }
     await api.backup.openFolder(dir);
   } catch (e) { window.toast.error('Could not open folder: ' + e.message); }
@@ -1034,21 +1306,13 @@ window.restoreBackup = async function(filePath) {
   var confirmed = await showConfirm({ title: 'Restore this backup?', message: 'This will replace ALL current data with the backup from ' + filePath.split(/[\\\/]/).pop() + '. A safety copy of the current data is saved first. The app will restart.', confirmText: 'Restore & Restart', danger: true, icon: '⟲' });
   if (!confirmed) return;
   window.toast.info('Restoring backup...');
-  try {
-    var result = await api.backup.restore(filePath);
-    window.toast.success('Backup restored. Restarting...');
-    console.log('Safety backup saved at:', result.safetyBackup);
-  } catch (e) { window.toast.error('Restore failed: ' + e.message); }
+  try { var result = await api.backup.restore(filePath); window.toast.success('Backup restored. Restarting...'); console.log('Safety backup:', result.safetyBackup); }
+  catch (e) { window.toast.error('Restore failed: ' + e.message); }
 };
 document.getElementById('btn-backup-now').addEventListener('click', async function() {
-  var btn = this;
-  btn.disabled = true;
-  btn.textContent = 'Backing up...';
-  try {
-    var result = await api.backup.create();
-    window.toast.success('Backup created: ' + result.filename + ' (' + result.files + ' files)');
-    await loadBackups();
-  } catch (e) { window.toast.error('Backup failed: ' + e.message); }
+  var btn = this; btn.disabled = true; btn.textContent = 'Backing up...';
+  try { var result = await api.backup.create(); window.toast.success('Backup created: ' + result.filename + ' (' + result.files + ' files)'); await loadBackups(); }
+  catch (e) { window.toast.error('Backup failed: ' + e.message); }
   finally { btn.disabled = false; btn.textContent = 'Backup Now'; }
 });
 
@@ -1081,35 +1345,24 @@ window.loadPrinterList = async function() {
     var printers = await api.printer.list();
     var el = document.getElementById('printer-list');
     if (!el) { window.toast.warning('Printer UI not found'); return; }
-    if (!printers.length) {
-      el.innerHTML = 'No printers detected. Make sure your thermal printer is connected and installed in Windows.';
-      return;
-    }
-    el.innerHTML = 'Detected printers: ' + printers.map(function(p) {
+    if (!printers.length) { el.innerHTML = 'No printers detected.'; return; }
+    el.innerHTML = 'Detected: ' + printers.map(function(p) {
       var safe = p.replace(/'/g, "\\'");
       return '<b style="cursor:pointer;color:var(--primary);" onclick="document.getElementById(\'printer-name-input\').value=\'' + safe + '\'">' + escapeHtml(p) + '</b>';
     }).join(' &middot; ');
-    if (!localStorage.getItem(PRINTER_KEY)) {
-      document.getElementById('printer-name-input').value = printers[0];
-    }
+    if (!localStorage.getItem(PRINTER_KEY)) document.getElementById('printer-name-input').value = printers[0];
   } catch (e) { window.toast.error('Could not detect printers'); }
 };
-(function() {
-  var input = document.getElementById('printer-name-input');
-  if (input) input.value = getSavedPrinter();
-})();
+(function() { var input = document.getElementById('printer-name-input'); if (input) input.value = getSavedPrinter(); })();
 
 // ============ AUTO-UPDATER ============
 (async function initUpdater() {
-  try {
-    var version = await api.updater.getVersion();
-    var vEl = document.getElementById('user-version');
-    if (vEl) vEl.textContent = 'v' + version;
-  } catch (e) { /* silent */ }
+  try { var version = await api.updater.getVersion(); var vEl = document.getElementById('user-version'); if (vEl) vEl.textContent = 'v' + version; }
+  catch (e) {}
   api.updater.onEvent('update:available', function(info) { window.toast.info('Update available: v' + info.version + ' - downloading...', 6000); });
   api.updater.onEvent('update:none', function(info) { console.log('[updater] Up to date'); });
   api.updater.onEvent('update:error', function(data) { console.error('[updater] Error:', data.message); });
-  api.updater.onEvent('update:progress', function(data) { /* no-op */ });
+  api.updater.onEvent('update:progress', function(data) {});
   api.updater.onEvent('update:downloaded', function(info) { showUpdateReadyToast(info.version); });
 })();
 function showUpdateReadyToast(version) {
@@ -1117,7 +1370,7 @@ function showUpdateReadyToast(version) {
   var el = document.createElement('div');
   el.className = 'toast success';
   el.style.minWidth = '340px';
-  el.innerHTML = '<span class="toast-icon">↑</span><span class="toast-message"><b>Update ready: v' + escapeHtml(version) + '</b><br><span style="font-size:12px;color:var(--text-muted);">Restart to apply the new version.</span></span><button class="toast-close" style="display:none;">x</button>';
+  el.innerHTML = '<span class="toast-icon">↑</span><span class="toast-message"><b>Update ready: v' + escapeHtml(version) + '</b><br><span style="font-size:12px;color:var(--text-muted);">Restart to apply.</span></span><button class="toast-close" style="display:none;">x</button>';
   var restart = document.createElement('button');
   restart.textContent = 'Restart Now';
   restart.className = 'btn btn-primary btn-sm';

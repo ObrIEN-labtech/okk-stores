@@ -67,6 +67,32 @@ function adjustStock(id, change, reason) {
   return getProductById(id);
 }
 
+// ============ PRODUCT VARIANTS ============
+function getVariantsByProduct(productId) {
+  return getDb().prepare('SELECT * FROM product_variants WHERE product_id = ? ORDER BY sort_order, price').all(productId);
+}
+function getVariantById(id) {
+  return getDb().prepare('SELECT * FROM product_variants WHERE id = ?').get(id);
+}
+function addVariant({ product_id, label, price, cost_price, stock, sort_order }) {
+  const r = getDb().prepare('INSERT INTO product_variants (product_id, label, price, cost_price, stock, sort_order) VALUES (?,?,?,?,?,?)')
+    .run(product_id, label, price || 0, cost_price || 0, stock || 0, sort_order || 0);
+  return getVariantById(r.lastInsertRowid);
+}
+function updateVariant(id, fields) {
+  const allowed = ['label','price','cost_price','stock','sort_order'];
+  const upd = [], vals = [];
+  for (const k of allowed) if (fields[k] !== undefined) { upd.push(k + ' = ?'); vals.push(fields[k]); }
+  if (!upd.length) return getVariantById(id);
+  upd.push('updated_at = CURRENT_TIMESTAMP'); vals.push(id);
+  getDb().prepare('UPDATE product_variants SET ' + upd.join(', ') + ' WHERE id = ?').run(...vals);
+  return getVariantById(id);
+}
+function deleteVariant(id) {
+  getDb().prepare('DELETE FROM product_variants WHERE id = ?').run(id);
+  return { success: true };
+}
+
 // ============ CUSTOMERS ============
 function getAllCustomers() {
   return getDb().prepare(`
@@ -79,12 +105,14 @@ function getAllCustomers() {
   `).all();
 }
 function getCustomerById(id) {
-  const c = getDb().prepare('SELECT * FROM customers WHERE id = ?').get(id);
+  const db = getDb();
+  const c = db.prepare('SELECT * FROM customers WHERE id = ?').get(id);
   if (!c) return null;
-  c.invoices = getDb().prepare('SELECT * FROM invoices WHERE customer_id = ? ORDER BY created_at DESC').all(id);
+  c.invoices = db.prepare('SELECT * FROM invoices WHERE customer_id = ? ORDER BY created_at DESC').all(id);
   c.lifetime_total = c.invoices.reduce((s, i) => s + i.total, 0);
   c.lifetime_paid = c.invoices.reduce((s, i) => s + i.amount_paid, 0);
   c.outstanding = c.invoices.reduce((s, i) => s + i.balance, 0);
+  c.transactions = db.prepare('SELECT * FROM customer_transactions WHERE customer_id = ? ORDER BY created_at DESC').all(id);
   return c;
 }
 function findOrCreateCustomer({ name, phone }) {
@@ -130,8 +158,7 @@ function getCustomerAging() {
   return buckets;
 }
 function getCustomerPayments(customerId) {
-  const db = getDb();
-  return db.prepare(`
+  return getDb().prepare(`
     SELECT p.id, p.amount, p.note, p.created_at,
            i.invoice_no, i.total
     FROM payments p
@@ -160,8 +187,28 @@ function getTopDebtors(limit) {
     const daysOverdue = r.oldest_invoice_date
       ? Math.floor((now - new Date(r.oldest_invoice_date).getTime()) / 86400000)
       : 0;
-    return { ...r, days_overdue: daysOverdue };
+    return Object.assign({}, r, { days_overdue: daysOverdue });
   });
+}
+
+// ============ CUSTOMER TRANSACTIONS (Cash ledger) ============
+function getCustomerLedger(customerId) {
+  return getDb().prepare('SELECT * FROM customer_transactions WHERE customer_id = ? ORDER BY created_at DESC').all(customerId);
+}
+function addCustomerTransaction(customerId, type, amount, note) {
+  const db = getDb();
+  const c = getCustomerById(customerId);
+  if (!c) throw new Error('Customer not found');
+  if (type !== 'in' && type !== 'out') throw new Error('Type must be "in" or "out"');
+  const amt = Math.round(amount);
+  if (amt <= 0) throw new Error('Amount must be positive');
+  const delta = type === 'in' ? amt : -amt;
+  const newBalance = (c.cash_balance || 0) + delta;
+  db.prepare('INSERT INTO customer_transactions (customer_id, type, amount, note) VALUES (?,?,?,?)')
+    .run(customerId, type, amt, note || '');
+  db.prepare('UPDATE customers SET cash_balance = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+    .run(newBalance, customerId);
+  return { success: true, newBalance: newBalance };
 }
 
 // ============ HELPERS ============
@@ -172,46 +219,129 @@ function computePaymentStatus(total, paid) {
 }
 
 // ============ ORDERS ============
-function createOrder({ customer_name, customer_phone, items, tax_rate, discount, amount_paid, fulfillment_status, notes }) {
+function createOrder({ customer_name, customer_phone, items, tax_rate, discount, amount_paid, fulfillment_status, notes, pay_previous }) {
   const db = getDb();
   if (!items || !items.length) throw new Error('Cart is empty');
+
   const resolved = items.map(it => {
-    const p = getProductById(it.product_id);
-    if (!p) throw new Error('Product ' + it.product_id + ' not found');
-    if (p.stock < it.quantity) throw new Error('Insufficient stock for ' + p.name + ' (have ' + p.stock + ')');
+    let unitPrice = 0;
+    let variantLabel = '';
+    let variantId = null;
+    let stockAvailable = 0;
+    let productName = '';
+    let productId = 0;
+
+    if (it.variant_id) {
+      const v = getVariantById(it.variant_id);
+      if (!v) throw new Error('Variant ' + it.variant_id + ' not found');
+      const p = getProductById(v.product_id);
+      if (!p) throw new Error('Product for variant not found');
+      unitPrice = v.price;
+      variantLabel = v.label;
+      variantId = v.id;
+      stockAvailable = v.stock;
+      productName = p.name + ' (' + v.label + ')';
+      productId = p.id;
+    } else {
+      const p = getProductById(it.product_id);
+      if (!p) throw new Error('Product ' + it.product_id + ' not found');
+      unitPrice = p.price;
+      stockAvailable = p.stock;
+      productName = p.name;
+      productId = p.id;
+    }
+
+    if (stockAvailable < it.quantity) {
+      throw new Error('Insufficient stock for ' + productName + ' (have ' + stockAvailable + ')');
+    }
+
     return {
-      product_id: p.id, product_name: p.name, quantity: it.quantity,
-      unit_price: p.price, line_total: Math.round(it.quantity * p.price)
+      product_id: productId,
+      product_name: productName,
+      variant_id: variantId,
+      variant_label: variantLabel,
+      quantity: it.quantity,
+      unit_price: unitPrice,
+      line_total: Math.round(it.quantity * unitPrice)
     };
   });
+
   const subtotal = resolved.reduce((s, i) => s + i.line_total, 0);
   const taxAmount = Math.round(subtotal * (tax_rate || 0));
   const total = Math.max(0, subtotal + taxAmount - (discount || 0));
-  const paid = Math.min(Math.max(0, Math.round(amount_paid || 0)), total);
+
+  const customer = findOrCreateCustomer({ name: customer_name, phone: customer_phone });
+
+  // Previous balance
+  let previousBalance = 0;
+  if (customer.id) {
+    const row = db.prepare('SELECT COALESCE(SUM(balance), 0) AS b FROM invoices WHERE customer_id = ?').get(customer.id);
+    previousBalance = Math.round(row.b || 0);
+  }
+  const payPrev = Math.min(Math.max(0, Math.round(pay_previous || 0)), previousBalance);
+
+  if (payPrev > 0 && customer.id) {
+    const tx = db.transaction(() => {
+      let remaining = payPrev;
+      const unpaid = db.prepare("SELECT id, balance FROM invoices WHERE customer_id = ? AND balance > 0 ORDER BY created_at ASC").all(customer.id);
+      for (const inv of unpaid) {
+        if (remaining <= 0) break;
+        const apply = Math.min(remaining, inv.balance);
+        const newBal = inv.balance - apply;
+        const currentInv = db.prepare('SELECT total, amount_paid FROM invoices WHERE id = ?').get(inv.id);
+        const newAmountPaid = currentInv.amount_paid + apply;
+        const status = computePaymentStatus(currentInv.total, newAmountPaid);
+        db.prepare('UPDATE invoices SET amount_paid = ?, balance = ?, payment_status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+          .run(newAmountPaid, newBal, status, inv.id);
+        db.prepare('INSERT INTO payments (invoice_id, amount, note) VALUES (?,?,?)')
+          .run(inv.id, apply, 'Payment on credit (applied at new sale)');
+        remaining -= apply;
+      }
+    });
+    tx();
+    previousBalance -= payPrev;
+  }
+
+  const remainingPaidForCurrent = Math.max(0, Math.round(amount_paid || 0) - payPrev);
+  const paid = Math.min(remainingPaidForCurrent, total);
   const balance = total - paid;
   const paymentStatus = computePaymentStatus(total, paid);
   const fulfillment = fulfillment_status === 'taken' ? 'taken' : 'not_taken';
+  const openingTotalDue = previousBalance + total;
+
   const last = db.prepare('SELECT id FROM invoices ORDER BY id DESC LIMIT 1').get();
   const invoiceNo = 'INV-' + String((last ? last.id + 1 : 1)).padStart(6, '0');
-  const customer = findOrCreateCustomer({ name: customer_name, phone: customer_phone });
 
   const tx = db.transaction(() => {
     const r = db.prepare(`INSERT INTO invoices
       (invoice_no, customer_id, customer_name, customer_phone, subtotal, tax_rate, tax_amount, discount, total,
-       amount_paid, balance, payment_status, fulfillment_status, notes)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+       amount_paid, balance, payment_status, fulfillment_status, notes,
+       previous_balance, opening_total_due, paid_on_previous)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
       .run(invoiceNo, customer.id, customer.name, customer.phone,
         subtotal, tax_rate || 0, taxAmount, discount || 0, total,
-        paid, balance, paymentStatus, fulfillment, notes || '');
+        paid, balance, paymentStatus, fulfillment, notes || '',
+        previousBalance, openingTotalDue, payPrev);
+
     const invId = r.lastInsertRowid;
+
     for (const it of resolved) {
-      db.prepare('INSERT INTO invoice_items (invoice_id,product_id,product_name,quantity,unit_price,line_total) VALUES (?,?,?,?,?,?)')
-        .run(invId, it.product_id, it.product_name, it.quantity, it.unit_price, it.line_total);
+      db.prepare(`INSERT INTO invoice_items
+        (invoice_id, product_id, product_name, variant_id, variant_label, quantity, unit_price, line_total)
+        VALUES (?,?,?,?,?,?,?,?)`)
+        .run(invId, it.product_id, it.product_name, it.variant_id, it.variant_label, it.quantity, it.unit_price, it.line_total);
+
+      if (it.variant_id) {
+        db.prepare('UPDATE product_variants SET stock = stock - ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+          .run(it.quantity, it.variant_id);
+      }
       db.prepare('UPDATE products SET stock = stock - ? WHERE id = ?').run(it.quantity, it.product_id);
       db.prepare('INSERT INTO stock_movements (product_id,change,reason) VALUES (?,?,?)')
         .run(it.product_id, -it.quantity, 'Sale ' + invoiceNo);
     }
-    if (paid > 0) db.prepare('INSERT INTO payments (invoice_id,amount,note) VALUES (?,?,?)').run(invId, paid, 'Initial payment');
+
+    if (paid > 0) db.prepare('INSERT INTO payments (invoice_id,amount,note) VALUES (?,?,?)').run(invId, paid, 'Payment at sale');
+
     return invId;
   });
   return getInvoiceById(tx());
@@ -345,7 +475,7 @@ function getSalesReport(fromDate, toDate) {
       avgOrder: Math.round(totals.avg_order), cogs: Math.round(cogsRow.cogs),
       profit: Math.round(totals.billed - cogsRow.cogs)
     },
-    daily, topProducts, topCustomers, paymentSplit
+    daily: daily, topProducts: topProducts, topCustomers: topCustomers, paymentSplit: paymentSplit
   };
 }
 
@@ -353,8 +483,9 @@ module.exports = {
   hasAdminPassword, setAdminPassword, checkAdminPassword,
   getAllProducts, getProductById, findProductByName, addProduct, updateProduct, deleteProduct,
   getPriceHistory, adjustStock,
+  getVariantsByProduct, getVariantById, addVariant, updateVariant, deleteVariant,
   getAllCustomers, getCustomerById, findOrCreateCustomer, updateCustomer, deleteCustomer, getCustomerAging,
-  getCustomerPayments, getTopDebtors,
+  getCustomerPayments, getTopDebtors, getCustomerLedger, addCustomerTransaction,
   createOrder, addPayment, setFulfillment, getInvoiceById, getAllInvoices, getInvoicesByFilter,
   getDashboardStats, getBestWorstSellers,
   getSalesReport

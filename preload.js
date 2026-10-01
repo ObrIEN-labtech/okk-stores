@@ -15,13 +15,22 @@ contextBridge.exposeInMainWorld('api', {
     priceHistory: (id) => ipcRenderer.invoke('products:priceHistory', id),
     adjustStock: (id, c, r) => ipcRenderer.invoke('products:adjustStock', { id, change: c, reason: r })
   },
+  variants: {
+    getByProduct: (pid) => ipcRenderer.invoke('variants:getByProduct', pid),
+    getById: (id) => ipcRenderer.invoke('variants:getById', id),
+    add: (d) => ipcRenderer.invoke('variants:add', d),
+    update: (id, fields) => ipcRenderer.invoke('variants:update', { id, fields }),
+    delete: (id) => ipcRenderer.invoke('variants:delete', id)
+  },
   customers: {
     getAll: () => ipcRenderer.invoke('customers:getAll'),
     getById: (id) => ipcRenderer.invoke('customers:getById', id),
     update: (id, fields) => ipcRenderer.invoke('customers:update', { id, fields }),
     delete: (id) => ipcRenderer.invoke('customers:delete', id),
     aging: () => ipcRenderer.invoke('customers:aging'),
-    payments: (id) => ipcRenderer.invoke('customers:payments', id)
+    payments: (id) => ipcRenderer.invoke('customers:payments', id),
+    ledger: (id) => ipcRenderer.invoke('customers:ledger', id),
+    addTransaction: (id, type, amount, note) => ipcRenderer.invoke('customers:addTransaction', { id, type, amount, note })
   },
   orders: {
     create: (d) => ipcRenderer.invoke('orders:create', d),

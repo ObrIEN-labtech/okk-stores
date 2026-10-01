@@ -7,6 +7,7 @@ function initDatabase(userDataPath) {
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
 
+  // ---- Base tables (v1) ----
   db.exec(`CREATE TABLE IF NOT EXISTS products (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     sku TEXT UNIQUE, name TEXT NOT NULL, category TEXT DEFAULT 'General',
@@ -52,6 +53,7 @@ function initDatabase(userDataPath) {
   db.exec(`CREATE TABLE IF NOT EXISTS invoice_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT, invoice_id INTEGER NOT NULL,
     product_id INTEGER NOT NULL, product_name TEXT NOT NULL,
+    variant_label TEXT DEFAULT '',
     quantity INTEGER NOT NULL, unit_price REAL NOT NULL, line_total REAL NOT NULL,
     FOREIGN KEY(invoice_id) REFERENCES invoices(id) ON DELETE CASCADE,
     FOREIGN KEY(product_id) REFERENCES products(id))`);
@@ -71,30 +73,76 @@ function initDatabase(userDataPath) {
   db.exec(`CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY, value TEXT NOT NULL)`);
 
-  // ---- MIGRATIONS ----
+  // ---- New tables (v2.9) ----
+  db.exec(`CREATE TABLE IF NOT EXISTS customer_transactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    customer_id INTEGER NOT NULL,
+    type TEXT NOT NULL,
+    amount REAL NOT NULL,
+    note TEXT DEFAULT '',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(customer_id) REFERENCES customers(id) ON DELETE CASCADE)`);
+
+  db.exec(`CREATE TABLE IF NOT EXISTS product_variants (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_id INTEGER NOT NULL,
+    label TEXT NOT NULL,
+    price REAL NOT NULL DEFAULT 0,
+    cost_price REAL NOT NULL DEFAULT 0,
+    stock INTEGER NOT NULL DEFAULT 0,
+    sort_order INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(product_id) REFERENCES products(id) ON DELETE CASCADE)`);
+
+  // ---- Migrations ----
   runMigrations();
 
   return db;
 }
 
-function runMigrations() {
-  // Add customer_id column to invoices if it's missing (from older versions)
+function columnExists(table, column) {
   try {
-    const cols = db.prepare("PRAGMA table_info(invoices)").all();
-    const hasCustomerId = cols.some(c => c.name === 'customer_id');
-    if (!hasCustomerId) {
-      db.exec("ALTER TABLE invoices ADD COLUMN customer_id INTEGER");
-      console.log('[migration] Added customer_id column to invoices');
-    }
-  } catch (e) {
-    console.error('[migration] Failed to check invoices schema:', e.message);
+    const cols = db.prepare(`PRAGMA table_info(${table})`).all();
+    return cols.some(c => c.name === column);
+  } catch (e) { return false; }
+}
+
+function runMigrations() {
+  // 1. customers.cash_balance
+  if (!columnExists('customers', 'cash_balance')) {
+    db.exec('ALTER TABLE customers ADD COLUMN cash_balance REAL NOT NULL DEFAULT 0');
+    console.log('[migration] Added customers.cash_balance');
   }
 
-  // Ensure settings table exists (older versions may not have it)
-  try {
-    db.exec(`CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)`);
-  } catch (e) {
-    console.error('[migration] Failed to ensure settings table:', e.message);
+  // 2. invoices.previous_balance
+  if (!columnExists('invoices', 'previous_balance')) {
+    db.exec('ALTER TABLE invoices ADD COLUMN previous_balance REAL NOT NULL DEFAULT 0');
+    console.log('[migration] Added invoices.previous_balance');
+  }
+
+  // 3. invoices.opening_total_due
+  if (!columnExists('invoices', 'opening_total_due')) {
+    db.exec('ALTER TABLE invoices ADD COLUMN opening_total_due REAL NOT NULL DEFAULT 0');
+    console.log('[migration] Added invoices.opening_total_due');
+  }
+
+  // 4. invoices.paid_on_previous (amount applied to previous_balance at checkout)
+  if (!columnExists('invoices', 'paid_on_previous')) {
+    db.exec('ALTER TABLE invoices ADD COLUMN paid_on_previous REAL NOT NULL DEFAULT 0');
+    console.log('[migration] Added invoices.paid_on_previous');
+  }
+
+  // 5. invoice_items.variant_label
+  if (!columnExists('invoice_items', 'variant_label')) {
+    db.exec("ALTER TABLE invoice_items ADD COLUMN variant_label TEXT DEFAULT ''");
+    console.log('[migration] Added invoice_items.variant_label');
+  }
+
+  // 6. invoice_items.variant_id
+  if (!columnExists('invoice_items', 'variant_id')) {
+    db.exec('ALTER TABLE invoice_items ADD COLUMN variant_id INTEGER');
+    console.log('[migration] Added invoice_items.variant_id');
   }
 }
 

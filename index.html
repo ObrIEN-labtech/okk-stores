@@ -77,7 +77,7 @@
           <div class="user-avatar">OK</div>
           <div class="user-info">
             <span class="user-name">Admin</span>
-            <span class="user-role" id="user-version">v2.6.0</span>
+            <span class="user-role" id="user-version">v2.9.0</span>
           </div>
         </div>
       </div>
@@ -118,15 +118,7 @@
           </div>
           <div class="table-wrap">
             <table id="top-debtors-table" class="data-table compact">
-              <thead>
-                <tr>
-                  <th>Customer</th>
-                  <th>Balance Owed</th>
-                  <th>Oldest Invoice</th>
-                  <th>Invoices</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
+              <thead><tr><th>Customer</th><th>Balance Owed</th><th>Oldest Invoice</th><th>Invoices</th><th>Actions</th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
@@ -153,7 +145,7 @@
 
       <section id="view-products" class="view">
         <div class="page-header">
-          <div><h1>Products</h1><p class="breadcrumb">Manage your inventory</p></div>
+          <div><h1>Products</h1><p class="breadcrumb">Manage your inventory and packaging variants</p></div>
           <div class="page-actions">
             <input type="search" id="product-search" class="search-input" placeholder="Search products...">
             <button id="btn-add-product" class="btn btn-primary">+ Add Product</button>
@@ -161,19 +153,19 @@
         </div>
         <div class="card">
           <div class="table-wrap">
-            <table id="product-table" class="data-table"><thead><tr><th>Name</th><th>Category</th><th>Cost</th><th>Price</th><th>Margin</th><th>Stock</th><th>Actions</th></tr></thead><tbody></tbody></table>
+            <table id="product-table" class="data-table"><thead><tr><th>Name</th><th>Category</th><th>Cost</th><th>Price</th><th>Margin</th><th>Stock</th><th>Variants</th><th>Actions</th></tr></thead><tbody></tbody></table>
           </div>
         </div>
       </section>
 
       <section id="view-customers" class="view">
         <div class="page-header">
-          <div><h1>Customers</h1><p class="breadcrumb">Manage your customer accounts</p></div>
+          <div><h1>Customers</h1><p class="breadcrumb">Manage customer accounts, debts and cash</p></div>
           <div class="page-actions"><input type="search" id="customer-search" class="search-input" placeholder="Search customers..."></div>
         </div>
         <div class="card">
           <div class="table-wrap">
-            <table id="customer-table" class="data-table"><thead><tr><th>Name</th><th>Phone</th><th>Orders</th><th>Lifetime Spend</th><th>Outstanding</th><th>Actions</th></tr></thead><tbody></tbody></table>
+            <table id="customer-table" class="data-table"><thead><tr><th>Name</th><th>Phone</th><th>Orders</th><th>Lifetime Spend</th><th>Outstanding</th><th>Cash Balance</th><th>Actions</th></tr></thead><tbody></tbody></table>
           </div>
         </div>
       </section>
@@ -184,7 +176,7 @@
           <div class="pos-left">
             <div class="card">
               <div class="pos-search-wrap">
-                <input type="text" id="sale-search" class="pos-search" placeholder="Type product name and press Enter to add..." autocomplete="off">
+                <input type="text" id="sale-search" class="pos-search" placeholder="Type product name and press Enter..." autocomplete="off">
                 <div id="autocomplete-box" class="autocomplete hidden"></div>
               </div>
               <div id="sale-product-list" class="product-grid"></div>
@@ -200,9 +192,16 @@
                 <div class="summary-row"><span>Subtotal</span><span id="cart-subtotal">UGX 0</span></div>
                 <div class="summary-row"><span>Tax (%)</span><input type="number" id="cart-tax" value="0" min="0" step="0.1"></div>
                 <div class="summary-row"><span>Discount (UGX)</span><input type="number" id="cart-discount" value="0" min="0" step="1"></div>
-                <div class="summary-row total"><span>Grand Total</span><span id="cart-total">UGX 0</span></div>
+                <div class="summary-row total"><span>This Order Total</span><span id="cart-total">UGX 0</span></div>
+
+                <div id="prev-balance-row" class="prev-balance-block hidden">
+                  <div class="summary-row prev-bal"><span>Previous Outstanding</span><span id="cart-prev-balance">UGX 0</span></div>
+                  <div class="summary-row"><span>Pay on Previous (UGX)</span><input type="number" id="cart-pay-prev" value="0" min="0" step="1"></div>
+                  <div class="summary-row grand-due"><span>Total Due Now</span><span id="cart-grand-due">UGX 0</span></div>
+                </div>
+
                 <div class="summary-row"><span>Amount Paid (UGX)</span><input type="number" id="cart-paid" value="0" min="0" step="1"></div>
-                <div class="summary-row balance"><span>Balance Due</span><span id="cart-balance">UGX 0</span></div>
+                <div class="summary-row balance"><span>Remaining Balance</span><span id="cart-balance">UGX 0</span></div>
               </div>
               <label class="checkbox-row"><input type="checkbox" id="cart-taken"> Mark goods as <b>Taken</b> now</label>
               <div class="customer-picker">
@@ -261,7 +260,6 @@
             <button class="btn btn-light btn-sm range-btn" data-range="year">This Year</button>
           </div>
         </div>
-
         <div class="card report-controls">
           <label>From<input type="date" id="report-from"></label>
           <label>To<input type="date" id="report-to"></label>
@@ -270,7 +268,6 @@
           <button id="btn-export-pdf" class="btn btn-light btn-sm">Export PDF</button>
           <button id="btn-export-csv" class="btn btn-light btn-sm">Export CSV</button>
         </div>
-
         <div class="stat-grid stat-grid-6">
           <div class="stat-card stat-secondary"><span class="stat-label">Revenue Billed</span><span class="stat-value" id="rep-billed">UGX 0</span></div>
           <div class="stat-card stat-success"><span class="stat-label">Collected</span><span class="stat-value" id="rep-collected">UGX 0</span></div>
@@ -279,24 +276,19 @@
           <div class="stat-card stat-info"><span class="stat-label">Orders</span><span class="stat-value" id="rep-orders">0</span></div>
           <div class="stat-card stat-warning"><span class="stat-label">Avg Order</span><span class="stat-value" id="rep-avg">UGX 0</span></div>
         </div>
-
         <div class="charts-row">
           <div class="card"><div class="card-head"><span class="card-label">Revenue Trend</span></div><canvas id="chart-revenue" height="200"></canvas></div>
           <div class="card"><div class="card-head"><span class="card-label">Payment Split</span></div><canvas id="chart-payments" height="200"></canvas></div>
         </div>
-
         <div class="charts-row">
           <div class="card"><div class="card-head"><span class="card-label">Top Products by Revenue</span></div><canvas id="chart-products" height="240"></canvas></div>
-          <div class="card">
-            <div class="card-head"><span class="card-label">Top Customers</span></div>
+          <div class="card"><div class="card-head"><span class="card-label">Top Customers</span></div>
             <div class="table-wrap">
               <table id="top-customers-table" class="data-table compact"><thead><tr><th>Customer</th><th>Orders</th><th>Billed</th><th>Balance</th></tr></thead><tbody></tbody></table>
             </div>
           </div>
         </div>
-
-        <div class="card">
-          <div class="card-head"><span class="card-label">Daily Breakdown</span></div>
+        <div class="card"><div class="card-head"><span class="card-label">Daily Breakdown</span></div>
           <div class="table-wrap">
             <table id="daily-table" class="data-table compact"><thead><tr><th>Date</th><th>Orders</th><th>Billed</th><th>Collected</th></tr></thead><tbody></tbody></table>
           </div>
@@ -306,45 +298,32 @@
       <section id="view-backups" class="view">
         <div class="page-header">
           <div><h1>Backups & Restore</h1><p class="breadcrumb">Protect and recover your shop data</p></div>
-          <div class="page-actions">
-            <button id="btn-backup-now" class="btn btn-primary">Backup Now</button>
-          </div>
+          <div class="page-actions"><button id="btn-backup-now" class="btn btn-primary">Backup Now</button></div>
         </div>
-
-        <div class="stat-grid stat-grid-3" id="backup-info-cards">
+        <div class="stat-grid stat-grid-3">
           <div class="stat-card stat-info"><div class="stat-icon">⟲</div><div class="stat-content"><span class="stat-label">Total Backups</span><span class="stat-value" id="backup-count">0</span></div></div>
           <div class="stat-card stat-success"><div class="stat-icon">✓</div><div class="stat-content"><span class="stat-label">Last Backup</span><span class="stat-value" id="backup-last" style="font-size:14px;">—</span></div></div>
           <div class="stat-card stat-primary"><div class="stat-icon">📁</div><div class="stat-content"><span class="stat-label">Primary Location</span><span class="stat-value" id="backup-primary-dir" style="font-size:12px;">—</span></div></div>
         </div>
-
         <div class="card">
           <div class="card-head"><span class="card-label">Available Backups</span></div>
           <div class="table-wrap">
-            <table id="backups-table" class="data-table">
-              <thead><tr><th>Date</th><th>File</th><th>Size</th><th>Location</th><th>Actions</th></tr></thead>
-              <tbody></tbody>
-            </table>
+            <table id="backups-table" class="data-table"><thead><tr><th>Date</th><th>File</th><th>Size</th><th>Location</th><th>Actions</th></tr></thead><tbody></tbody></table>
           </div>
         </div>
-
         <div class="card">
           <div class="card-head"><span class="card-label">Automatic Backups</span></div>
           <p style="color:var(--text-muted);font-size:13px;line-height:1.7;">
             Windows Task Scheduler runs a backup every day at <b>20:40</b>. It saves to your
             removable drive (<code>E:\OKK-Backups\</code>) and falls back to
             <code>Documents\OKK-Backups\</code> if the drive is not connected.
-            The last 30 backups are kept automatically.
           </p>
-          <div style="margin-top:14px;">
-            <button class="btn btn-light btn-sm" onclick="openBackupFolder('primary')">Open Backup Folder</button>
-          </div>
+          <div style="margin-top:14px;"><button class="btn btn-light btn-sm" onclick="openBackupFolder('primary')">Open Backup Folder</button></div>
         </div>
-
         <div class="card">
           <div class="card-head"><span class="card-label">Thermal Receipt Printer</span></div>
           <p style="color:var(--text-muted);font-size:13px;line-height:1.7;margin-bottom:12px;">
-            Connect your 58mm USB thermal printer and select it below. The printer must appear in
-            <b>Windows Settings → Bluetooth &amp; devices → Printers</b> before you can use it here.
+            Connect your 58mm USB thermal printer and select it below.
           </p>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
             <input type="text" id="printer-name-input" placeholder="Printer name (e.g. POS-58)" style="min-width:240px;">
