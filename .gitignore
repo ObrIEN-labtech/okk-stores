@@ -45,3 +45,9 @@ yarn-error.log*
 # Backup files
 *.bak
 *.tmp
+
+# Build artifacts
+*.exe
+*.exe.blockmap
+latest.yml
+dist/
