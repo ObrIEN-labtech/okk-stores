@@ -3,7 +3,7 @@
   "version": "3.1.0",
   "description": "OKK Stores Inventory & Invoicing",
   "main": "main.js",
-  "author": "OKK Stores",
+  "author": "okellobobrien@gmail.com",
   "license": "MIT",
   "scripts": {
     "start": "electron .",
@@ -79,3 +79,4 @@
     }
   }
 }
+

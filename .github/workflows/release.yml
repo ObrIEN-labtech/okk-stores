@@ -21,8 +21,10 @@ jobs:
             platform: win
     runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout
+       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v4
