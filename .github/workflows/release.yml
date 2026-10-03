@@ -11,15 +11,7 @@ permissions:
 
 jobs:
   release:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-            platform: linux
-          - os: windows-latest
-            platform: win
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,8 +31,8 @@ jobs:
         run: npx electron-rebuild -f -w better-sqlite3
         shell: bash
 
-      - name: Build & publish (${{ matrix.platform }})
+      - name: Build & publish
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --${{ matrix.platform }} --publish always
+        run: npx electron-builder --win --publish always
         shell: bash

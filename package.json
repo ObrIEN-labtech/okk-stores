@@ -9,7 +9,6 @@
     "start": "electron .",
     "rebuild": "electron-rebuild -f -w better-sqlite3",
     "build:win": "electron-builder --win --publish never",
-    "build:linux": "electron-builder --linux --publish never",
     "release": "electron-builder --publish always",
     "backup": "node scripts/backup-db.js"
   },
@@ -69,13 +68,6 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "shortcutName": "OKK Stores"
-    },
-    "linux": {
-      "target": [
-        "AppImage",
-        "deb"
-      ],
-      "category": "Office"
     }
   }
 }
