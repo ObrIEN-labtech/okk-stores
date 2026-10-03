@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('api', {
     getAll: () => ipcRenderer.invoke('products:getAll'),
     getById: (id) => ipcRenderer.invoke('products:getById', id),
     findByName: (name) => ipcRenderer.invoke('products:findByName', name),
+    findByBarcode: (bc) => ipcRenderer.invoke('products:findByBarcode', bc),
     add: (d) => ipcRenderer.invoke('products:add', d),
     update: (id, f) => ipcRenderer.invoke('products:update', { id, fields: f }),
     delete: (id) => ipcRenderer.invoke('products:delete', id),
@@ -43,10 +44,62 @@ contextBridge.exposeInMainWorld('api', {
   dashboard: {
     stats: () => ipcRenderer.invoke('dashboard:stats'),
     bestWorst: () => ipcRenderer.invoke('dashboard:bestWorst'),
-    topDebtors: (limit) => ipcRenderer.invoke('dashboard:topDebtors', limit)
+    topDebtors: (limit) => ipcRenderer.invoke('dashboard:topDebtors', limit),
+    operations: () => ipcRenderer.invoke('dashboard:operations')
   },
   reports: {
     sales: (from, to) => ipcRenderer.invoke('reports:sales', { from, to })
+  },
+  expenses: {
+    getAll: (from, to) => ipcRenderer.invoke('expenses:getAll', { from, to }),
+    add: (d) => ipcRenderer.invoke('expenses:add', d),
+    update: (id, fields) => ipcRenderer.invoke('expenses:update', { id, fields }),
+    delete: (id) => ipcRenderer.invoke('expenses:delete', id),
+    summary: (from, to) => ipcRenderer.invoke('expenses:summary', { from, to }),
+    getCategories: () => ipcRenderer.invoke('expenses:getCategories'),
+    addCategory: (name) => ipcRenderer.invoke('expenses:addCategory', name),
+    deleteCategory: (id) => ipcRenderer.invoke('expenses:deleteCategory', id)
+  },
+    cashbook: {
+    getAll: (from, to, depositor) => ipcRenderer.invoke('cashbook:getAll', { from, to, depositor }),
+    add: (d) => ipcRenderer.invoke('cashbook:add', d),
+    delete: (id) => ipcRenderer.invoke('cashbook:delete', id),
+    summary: (from, to) => ipcRenderer.invoke('cashbook:summary', { from, to }),
+    depositorOutstanding: (name) => ipcRenderer.invoke('cashbook:depositorOutstanding', name),
+    depositorHistory: (name) => ipcRenderer.invoke('cashbook:depositorHistory', name),
+    depositors: () => ipcRenderer.invoke('cashbook:depositors')
+  },
+
+  suppliers: {
+    getAll: () => ipcRenderer.invoke('suppliers:getAll'),
+    getById: (id) => ipcRenderer.invoke('suppliers:getById', id),
+    add: (d) => ipcRenderer.invoke('suppliers:add', d),
+    update: (id, fields) => ipcRenderer.invoke('suppliers:update', { id, fields }),
+    delete: (id) => ipcRenderer.invoke('suppliers:delete', id),
+    addPayment: (d) => ipcRenderer.invoke('suppliers:addPayment', d)
+  },
+  po: {
+    getAll: (f) => ipcRenderer.invoke('po:getAll', f),
+    getById: (id) => ipcRenderer.invoke('po:getById', id),
+    create: (d) => ipcRenderer.invoke('po:create', d),
+    receive: (id) => ipcRenderer.invoke('po:receive', id),
+    cancel: (id) => ipcRenderer.invoke('po:cancel', id)
+  },
+  stocktake: {
+    getActive: () => ipcRenderer.invoke('stocktake:getActive'),
+    start: (notes) => ipcRenderer.invoke('stocktake:start', notes),
+    updateItem: (id, actual_qty, reason, note) => ipcRenderer.invoke('stocktake:updateItem', { id, actual_qty, reason, note }),
+    complete: (id, applyAdjustments) => ipcRenderer.invoke('stocktake:complete', { id, applyAdjustments }),
+    history: () => ipcRenderer.invoke('stocktake:history'),
+    getById: (id) => ipcRenderer.invoke('stocktake:getById', id)
+  },
+  preorders: {
+    getAll: (f) => ipcRenderer.invoke('preorders:getAll', f),
+    getById: (id) => ipcRenderer.invoke('preorders:getById', id),
+    create: (d) => ipcRenderer.invoke('preorders:create', d),
+    addPayment: (id, amount, note) => ipcRenderer.invoke('preorders:addPayment', { id, amount, note }),
+    complete: (id) => ipcRenderer.invoke('preorders:complete', id),
+    cancel: (id) => ipcRenderer.invoke('preorders:cancel', id)
   },
   system: {
     openExternal: (url) => ipcRenderer.invoke('system:openExternal', url),

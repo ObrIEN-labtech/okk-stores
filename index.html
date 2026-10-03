@@ -42,10 +42,18 @@
       <a href="#" data-view="dashboard" class="nav-item active"><span class="nav-icon">▦</span><span class="nav-label">Dashboard</span></a>
       <a href="#" data-view="sale" class="nav-item"><span class="nav-icon">＋</span><span class="nav-label">New Order</span></a>
       <a href="#" data-view="orders" class="nav-item"><span class="nav-icon">▤</span><span class="nav-label">Orders / Receipts</span></a>
+      <a href="#" data-view="preorders" class="nav-item"><span class="nav-icon">★</span><span class="nav-label">Pre-Orders</span></a>
 
       <div class="nav-section-label">Catalogue</div>
       <a href="#" data-view="products" class="nav-item"><span class="nav-icon">◈</span><span class="nav-label">Products</span></a>
       <a href="#" data-view="customers" class="nav-item"><span class="nav-icon">◉</span><span class="nav-label">Customers</span></a>
+      <a href="#" data-view="suppliers" class="nav-item"><span class="nav-icon">◐</span><span class="nav-label">Suppliers</span></a>
+      <a href="#" data-view="purchases" class="nav-item"><span class="nav-icon">▥</span><span class="nav-label">Purchase Orders</span></a>
+
+            <div class="nav-section-label">Operations</div>
+      <a href="#" data-view="cashbook" class="nav-item"><span class="nav-icon">₵</span><span class="nav-label">Cash Book</span></a>
+      <a href="#" data-view="stocktake" class="nav-item"><span class="nav-icon">⇄</span><span class="nav-label">Stock Take</span></a>
+      <a href="#" data-view="expenses" class="nav-item"><span class="nav-icon">−</span><span class="nav-label">Expenses</span></a>
 
       <div class="nav-section-label">Insights</div>
       <a href="#" data-view="reports" class="nav-item"><span class="nav-icon">▨</span><span class="nav-label">Reports</span></a>
@@ -77,7 +85,7 @@
           <div class="user-avatar">OK</div>
           <div class="user-info">
             <span class="user-name">Admin</span>
-            <span class="user-role" id="user-version">v2.9.0</span>
+            <span class="user-role" id="user-version">v3.1.0</span>
           </div>
         </div>
       </div>
@@ -85,64 +93,104 @@
 
     <main class="content">
 
+      <!-- ============ DASHBOARD ============ -->
       <section id="view-dashboard" class="view active">
         <div class="page-header">
           <div><h1>Dashboard</h1><p class="breadcrumb">Welcome back to OKK Stores</p></div>
           <span class="date-pill" id="today-date"></span>
         </div>
 
-        <div class="stat-grid stat-grid-5">
-          <div class="stat-card stat-primary"><div class="stat-icon">₴</div><div class="stat-content"><span class="stat-label">Inventory Value</span><span class="stat-value" id="stat-value">UGX 0</span></div></div>
-          <div class="stat-card stat-success"><div class="stat-icon">↗</div><div class="stat-content"><span class="stat-label">Potential Profit</span><span class="stat-value" id="stat-profit">UGX 0</span></div></div>
-          <div class="stat-card stat-info"><div class="stat-icon">◈</div><div class="stat-content"><span class="stat-label">Products</span><span class="stat-value" id="stat-products">0</span></div></div>
-          <div class="stat-card stat-warning"><div class="stat-icon">⚠</div><div class="stat-content"><span class="stat-label">Low Stock</span><span class="stat-value" id="stat-lowstock">0</span></div></div>
-          <div class="stat-card stat-secondary"><div class="stat-icon">₵</div><div class="stat-content"><span class="stat-label">Today's Sales</span><span class="stat-value" id="stat-sales">UGX 0</span></div></div>
+        <div class="tabs" id="dash-tabs">
+          <button class="tab active" data-tab="sales">Sales</button>
+          <button class="tab" data-tab="operations">Operations</button>
         </div>
 
-        <div class="stat-grid stat-grid-3">
-          <div class="order-card order-pending"><div class="order-card-head"><span class="order-card-label">Ordered – Not Paid</span><span class="order-card-icon">⏱</span></div><div class="order-card-value" id="stat-onp-c">0</div><div class="order-card-sub" id="stat-onp-a">UGX 0</div></div>
-          <div class="order-card order-ready"><div class="order-card-head"><span class="order-card-label">Paid – Not Taken</span><span class="order-card-icon">📦</span></div><div class="order-card-value" id="stat-pnt-c">0</div><div class="order-card-sub" id="stat-pnt-a">UGX 0</div></div>
-          <div class="order-card order-credit"><div class="order-card-head"><span class="order-card-label">Taken – Not Paid</span><span class="order-card-icon">⚠</span></div><div class="order-card-value" id="stat-tnp-c">0</div><div class="order-card-sub" id="stat-tnp-a">UGX 0</div></div>
-        </div>
-
-        <div class="stat-grid stat-grid-3">
-          <div class="card card-best"><div class="card-head"><span class="card-label">Most Selling Product</span><span class="card-icon card-icon-success">▲</span></div><div class="card-title" id="stat-best">—</div><div class="card-sub" id="stat-best-qty">0 sold</div></div>
-          <div class="card card-worst"><div class="card-head"><span class="card-label">Least Selling Product</span><span class="card-icon card-icon-danger">▼</span></div><div class="card-title" id="stat-worst">—</div><div class="card-sub" id="stat-worst-qty">0 sold</div></div>
-          <div class="card card-debt"><div class="card-head"><span class="card-label">Customer Debt</span><span class="card-icon card-icon-warning">◉</span></div><div class="card-title" id="stat-cust-debt">UGX 0</div><div class="card-sub" id="stat-cust-count">0 customers</div></div>
-        </div>
-
-        <div class="card">
-          <div class="card-head">
-            <span class="card-label">Follow-Up Today — Customers With Overdue Debt</span>
-            <button class="btn btn-light btn-sm" onclick="loadTopDebtors()">Refresh</button>
+        <div id="dash-sales" class="dash-tab-content">
+          <div class="stat-grid stat-grid-5">
+            <div class="stat-card stat-primary"><div class="stat-icon">₴</div><div class="stat-content"><span class="stat-label">Inventory Value</span><span class="stat-value" id="stat-value">UGX 0</span></div></div>
+            <div class="stat-card stat-success"><div class="stat-icon">↗</div><div class="stat-content"><span class="stat-label">Potential Profit</span><span class="stat-value" id="stat-profit">UGX 0</span></div></div>
+            <div class="stat-card stat-info"><div class="stat-icon">◈</div><div class="stat-content"><span class="stat-label">Products</span><span class="stat-value" id="stat-products">0</span></div></div>
+            <div class="stat-card stat-warning"><div class="stat-icon">⚠</div><div class="stat-content"><span class="stat-label">Low Stock</span><span class="stat-value" id="stat-lowstock">0</span></div></div>
+            <div class="stat-card stat-secondary"><div class="stat-icon">₵</div><div class="stat-content"><span class="stat-label">Today's Sales</span><span class="stat-value" id="stat-sales">UGX 0</span></div></div>
           </div>
-          <div class="table-wrap">
-            <table id="top-debtors-table" class="data-table compact">
-              <thead><tr><th>Customer</th><th>Balance Owed</th><th>Oldest Invoice</th><th>Invoices</th><th>Actions</th></tr></thead>
-              <tbody></tbody>
-            </table>
+
+          <div class="stat-grid stat-grid-3">
+            <div class="order-card order-pending"><div class="order-card-head"><span class="order-card-label">Ordered – Not Paid</span><span class="order-card-icon">⏱</span></div><div class="order-card-value" id="stat-onp-c">0</div><div class="order-card-sub" id="stat-onp-a">UGX 0</div></div>
+            <div class="order-card order-ready"><div class="order-card-head"><span class="order-card-label">Paid – Not Taken</span><span class="order-card-icon">📦</span></div><div class="order-card-value" id="stat-pnt-c">0</div><div class="order-card-sub" id="stat-pnt-a">UGX 0</div></div>
+            <div class="order-card order-credit"><div class="order-card-head"><span class="order-card-label">Taken – Not Paid</span><span class="order-card-icon">⚠</span></div><div class="order-card-value" id="stat-tnp-c">0</div><div class="order-card-sub" id="stat-tnp-a">UGX 0</div></div>
+          </div>
+
+          <div class="stat-grid stat-grid-3">
+            <div class="card card-best"><div class="card-head"><span class="card-label">Most Selling Product</span><span class="card-icon card-icon-success">▲</span></div><div class="card-title" id="stat-best">—</div><div class="card-sub" id="stat-best-qty">0 sold</div></div>
+            <div class="card card-worst"><div class="card-head"><span class="card-label">Least Selling Product</span><span class="card-icon card-icon-danger">▼</span></div><div class="card-title" id="stat-worst">—</div><div class="card-sub" id="stat-worst-qty">0 sold</div></div>
+            <div class="card card-debt"><div class="card-head"><span class="card-label">Customer Debt</span><span class="card-icon card-icon-warning">◉</span></div><div class="card-title" id="stat-cust-debt">UGX 0</div><div class="card-sub" id="stat-cust-count">0 customers</div></div>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <span class="card-label">Follow-Up Today — Customers With Overdue Debt</span>
+              <button class="btn btn-light btn-sm" onclick="loadTopDebtors()">Refresh</button>
+            </div>
+            <div class="table-wrap">
+              <table id="top-debtors-table" class="data-table compact">
+                <thead><tr><th>Customer</th><th>Balance Owed</th><th>Oldest Invoice</th><th>Invoices</th><th>Actions</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><span class="card-label">Debt Aging</span></div>
+            <div class="aging-grid">
+              <div class="aging-cell aging-ok"><span>0–30 days</span><b id="age-current">UGX 0</b></div>
+              <div class="aging-cell aging-warn"><span>31–60 days</span><b id="age-30">UGX 0</b></div>
+              <div class="aging-cell aging-warn"><span>61–90 days</span><b id="age-60">UGX 0</b></div>
+              <div class="aging-cell aging-danger"><span>91–180 days</span><b id="age-90">UGX 0</b></div>
+              <div class="aging-cell aging-danger"><span>180+ days</span><b id="age-older">UGX 0</b></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><span class="card-label">Low Stock Alerts</span></div>
+            <div class="table-wrap">
+              <table id="low-stock-table" class="data-table"><thead><tr><th>Product</th><th>Stock</th><th>Reorder At</th><th>Action</th></tr></thead><tbody></tbody></table>
+            </div>
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-head"><span class="card-label">Debt Aging</span></div>
-          <div class="aging-grid">
-            <div class="aging-cell aging-ok"><span>0–30 days</span><b id="age-current">UGX 0</b></div>
-            <div class="aging-cell aging-warn"><span>31–60 days</span><b id="age-30">UGX 0</b></div>
-            <div class="aging-cell aging-warn"><span>61–90 days</span><b id="age-60">UGX 0</b></div>
-            <div class="aging-cell aging-danger"><span>91–180 days</span><b id="age-90">UGX 0</b></div>
-            <div class="aging-cell aging-danger"><span>180+ days</span><b id="age-older">UGX 0</b></div>
+        <div id="dash-operations" class="dash-tab-content hidden">
+          <div class="stat-grid stat-grid-4">
+            <div class="stat-card stat-danger"><div class="stat-icon">−</div><div class="stat-content"><span class="stat-label">Monthly Expenses</span><span class="stat-value" id="ops-expenses">UGX 0</span></div></div>
+            <div class="stat-card stat-success"><div class="stat-icon">↗</div><div class="stat-content"><span class="stat-label">Gross Profit (Month)</span><span class="stat-value" id="ops-gross">UGX 0</span></div></div>
+            <div class="stat-card stat-primary"><div class="stat-icon">₵</div><div class="stat-content"><span class="stat-label">Net Profit (Month)</span><span class="stat-value" id="ops-net">UGX 0</span></div></div>
+            <div class="stat-card stat-warning"><div class="stat-icon">▥</div><div class="stat-content"><span class="stat-label">Pending Purchase Orders</span><span class="stat-value" id="ops-pending-pos">0</span></div></div>
           </div>
-        </div>
 
-        <div class="card">
-          <div class="card-head"><span class="card-label">Low Stock Alerts</span></div>
-          <div class="table-wrap">
-            <table id="low-stock-table" class="data-table"><thead><tr><th>Product</th><th>Stock</th><th>Reorder At</th><th>Action</th></tr></thead><tbody></tbody></table>
+          <div class="stat-grid stat-grid-2">
+            <div class="stat-card stat-info"><div class="stat-icon">★</div><div class="stat-content"><span class="stat-label">Active Pre-Orders</span><span class="stat-value" id="ops-preorders">0</span></div></div>
+            <div class="stat-card stat-secondary"><div class="stat-icon">◐</div><div class="stat-content"><span class="stat-label">Owed to Suppliers</span><span class="stat-value" id="ops-supplier-balance">UGX 0</span></div></div>
+          </div>
+
+          <div class="stat-grid stat-grid-3">
+            <div class="stat-card"><div class="stat-content"><span class="stat-label">Revenue (Month)</span><span class="stat-value" id="ops-revenue">UGX 0</span></div></div>
+            <div class="stat-card"><div class="stat-content"><span class="stat-label">Cost of Goods (Month)</span><span class="stat-value" id="ops-cogs">UGX 0</span></div></div>
+            <div class="stat-card"><div class="stat-content"><span class="stat-label">Gross Margin %</span><span class="stat-value" id="ops-margin">0%</span></div></div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><span class="card-label">Quick Actions</span></div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <button class="btn btn-primary" onclick="gotoView('expenses')">+ Add Expense</button>
+              <button class="btn btn-light" onclick="gotoView('purchases')">Create Purchase Order</button>
+              <button class="btn btn-light" onclick="gotoView('suppliers')">Pay Supplier</button>
+              <button class="btn btn-light" onclick="gotoView('stocktake')">Start Stock Take</button>
+              <button class="btn btn-light" onclick="gotoView('preorders')">New Pre-Order</button>
+            </div>
           </div>
         </div>
       </section>
 
+      <!-- ============ PRODUCTS ============ -->
       <section id="view-products" class="view">
         <div class="page-header">
           <div><h1>Products</h1><p class="breadcrumb">Manage your inventory and packaging variants</p></div>
@@ -153,30 +201,202 @@
         </div>
         <div class="card">
           <div class="table-wrap">
-            <table id="product-table" class="data-table"><thead><tr><th>Name</th><th>Category</th><th>Cost</th><th>Price</th><th>Margin</th><th>Stock</th><th>Variants</th><th>Actions</th></tr></thead><tbody></tbody></table>
+            <table id="product-table" class="data-table"><thead><tr><th>Name</th><th>Category</th><th>Cost</th><th>Price</th><th>Margin</th><th>Stock</th><th>Barcode</th><th>Variants</th><th>Actions</th></tr></thead><tbody></tbody></table>
           </div>
         </div>
       </section>
 
+      <!-- ============ CUSTOMERS ============ -->
       <section id="view-customers" class="view">
         <div class="page-header">
-          <div><h1>Customers</h1><p class="breadcrumb">Manage customer accounts, debts and cash</p></div>
+          <div><h1>Customers</h1><p class="breadcrumb">Manage customer accounts, debts, credit limits and cash</p></div>
           <div class="page-actions"><input type="search" id="customer-search" class="search-input" placeholder="Search customers..."></div>
         </div>
         <div class="card">
           <div class="table-wrap">
-            <table id="customer-table" class="data-table"><thead><tr><th>Name</th><th>Phone</th><th>Orders</th><th>Lifetime Spend</th><th>Outstanding</th><th>Cash Balance</th><th>Actions</th></tr></thead><tbody></tbody></table>
+            <table id="customer-table" class="data-table"><thead><tr><th>Name</th><th>Phone</th><th>Orders</th><th>Lifetime Spend</th><th>Outstanding</th><th>Credit Limit</th><th>Cash Balance</th><th>Actions</th></tr></thead><tbody></tbody></table>
           </div>
         </div>
       </section>
 
+      <!-- ============ SUPPLIERS ============ -->
+      <section id="view-suppliers" class="view">
+        <div class="page-header">
+          <div><h1>Suppliers</h1><p class="breadcrumb">Manage suppliers and track what you owe</p></div>
+          <div class="page-actions">
+            <input type="search" id="supplier-search" class="search-input" placeholder="Search suppliers...">
+            <button id="btn-add-supplier" class="btn btn-primary">+ Add Supplier</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table id="supplier-table" class="data-table"><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Balance Owed</th><th>Actions</th></tr></thead><tbody></tbody></table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ PURCHASE ORDERS ============ -->
+      <section id="view-purchases" class="view">
+        <div class="page-header">
+          <div><h1>Purchase Orders</h1><p class="breadcrumb">Record what you buy from suppliers</p></div>
+          <div class="page-actions">
+            <button class="btn btn-light btn-sm po-filter active" data-filter="all">All</button>
+            <button class="btn btn-light btn-sm po-filter" data-filter="pending">Pending</button>
+            <button class="btn btn-light btn-sm po-filter" data-filter="received">Received</button>
+            <button id="btn-add-po" class="btn btn-primary">+ New Purchase Order</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table id="po-table" class="data-table"><thead><tr><th>PO #</th><th>Supplier</th><th>Status</th><th>Total</th><th>Paid</th><th>Balance</th><th>Ordered</th><th>Actions</th></tr></thead><tbody></tbody></table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ STOCK TAKE ============ -->
+      <section id="view-stocktake" class="view">
+        <div class="page-header">
+          <div><h1>Stock Take</h1><p class="breadcrumb">Count physical stock and reconcile with the system</p></div>
+          <div class="page-actions">
+            <button id="btn-stocktake-start" class="btn btn-primary">Start New Stock Take</button>
+            <button id="btn-stocktake-history" class="btn btn-light">History</button>
+          </div>
+        </div>
+        <div id="stocktake-content" class="card">
+          <p style="color:var(--text-muted);text-align:center;padding:32px;">No active stock take. Click "Start New Stock Take" to begin.</p>
+        </div>
+      </section>
+           <!-- ============ CASH BOOK ============ -->
+      <section id="view-cashbook" class="view">
+        <div class="page-header">
+          <div><h1>Cash Book</h1><p class="breadcrumb">Track deposits, payouts and outstanding balances</p></div>
+          <div class="page-actions">
+            <input type="date" id="cashbook-from" style="padding:7px 12px;font-size:13px;">
+            <input type="date" id="cashbook-to" style="padding:7px 12px;font-size:13px;">
+            <input type="search" id="cashbook-search" class="search-input" placeholder="Filter by depositor...">
+            <button id="btn-cashbook-filter" class="btn btn-light btn-sm">Apply</button>
+            <button id="btn-cashbook-export-pdf" class="btn btn-light btn-sm">Export PDF</button>
+            <button id="btn-cashbook-export-csv" class="btn btn-light btn-sm">Export CSV</button>
+            <button id="btn-add-cashbook" class="btn btn-primary">+ Record Deposit</button>
+          </div>
+        </div>
+
+        <div class="stat-grid stat-grid-5">
+          <div class="stat-card stat-success"><div class="stat-icon">↓</div><div class="stat-content"><span class="stat-label">Received (Period)</span><span class="stat-value" id="cb-in">UGX 0</span></div></div>
+          <div class="stat-card stat-danger"><div class="stat-icon">↑</div><div class="stat-content"><span class="stat-label">Paid Out (Period)</span><span class="stat-value" id="cb-out">UGX 0</span></div></div>
+          <div class="stat-card stat-primary"><div class="stat-icon">₵</div><div class="stat-content"><span class="stat-label">Net Movement</span><span class="stat-value" id="cb-net">UGX 0</span></div></div>
+          <div class="stat-card stat-warning"><div class="stat-icon">⚠</div><div class="stat-content"><span class="stat-label">Outstanding (Period)</span><span class="stat-value" id="cb-outstanding">UGX 0</span></div></div>
+          <div class="stat-card stat-info"><div class="stat-icon">◉</div><div class="stat-content"><span class="stat-label">Total Outstanding (All-Time)</span><span class="stat-value" id="cb-lifetime-outstanding">UGX 0</span></div></div>
+        </div>
+
+        <div class="stat-grid stat-grid-3">
+          <div class="stat-card"><span class="stat-label">Lifetime Received</span><span class="stat-value" id="cb-lifetime-in">UGX 0</span></div>
+          <div class="stat-card"><span class="stat-label">Lifetime Paid Out</span><span class="stat-value" id="cb-lifetime-out">UGX 0</span></div>
+          <div class="stat-card"><span class="stat-label">Entries (Period)</span><span class="stat-value" id="cb-count">0</span></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <span class="card-label">Depositors</span>
+            <button class="btn btn-light btn-sm" onclick="loadDepositors()">Refresh</button>
+          </div>
+          <div class="table-wrap">
+            <table id="depositors-table" class="data-table compact">
+              <thead><tr><th>Depositor</th><th>Phone</th><th>Entries</th><th>Total Received</th><th>Total Paid Out</th><th>Outstanding</th><th>Actions</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <span class="card-label">All Cash Entries</span>
+            <span id="cb-entries-hint" style="color:var(--text-muted);font-size:12px;"></span>
+          </div>
+          <div class="table-wrap">
+            <table id="cashbook-table" class="data-table">
+              <thead><tr><th>Date</th><th>Depositor</th><th>Type</th><th>Mode</th><th>Received</th><th>Expected</th><th>Applied Prev</th><th>Outstanding</th><th>Note</th><th>Actions</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+
+      <!-- ============ EXPENSES ============ -->
+      <section id="view-expenses" class="view">
+        <div class="page-header">
+          <div><h1>Expenses</h1><p class="breadcrumb">Track shop-wide spending</p></div>
+          <div class="page-actions">
+            <label style="display:flex;align-items:center;gap:6px;">
+              <input type="date" id="expense-from">
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;">
+              <input type="date" id="expense-to">
+            </label>
+            <button id="btn-expense-filter" class="btn btn-light btn-sm">Apply</button>
+            <button id="btn-add-expense" class="btn btn-primary">+ Add Expense</button>
+          </div>
+        </div>
+
+        <div class="stat-grid stat-grid-2">
+          <div class="stat-card stat-danger"><div class="stat-icon">−</div><div class="stat-content"><span class="stat-label">Total for Period</span><span class="stat-value" id="expense-total">UGX 0</span></div></div>
+          <div class="stat-card stat-info"><div class="stat-icon">▦</div><div class="stat-content"><span class="stat-label">Transactions</span><span class="stat-value" id="expense-count">0</span></div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <span class="card-label">By Category</span>
+          </div>
+          <div class="table-wrap">
+            <table id="expense-summary-table" class="data-table compact">
+              <thead><tr><th>Category</th><th>Count</th><th>Total</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <span class="card-label">All Expenses</span>
+            <button class="btn btn-light btn-sm" onclick="manageExpenseCategories()">Manage Categories</button>
+          </div>
+          <div class="table-wrap">
+            <table id="expense-table" class="data-table">
+              <thead><tr><th>Date</th><th>Category</th><th>Note</th><th>Paid By</th><th>Amount</th><th>Actions</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ PRE-ORDERS ============ -->
+      <section id="view-preorders" class="view">
+        <div class="page-header">
+          <div><h1>Pre-Orders / Layaway</h1><p class="breadcrumb">Reserve products with deposits; customer collects on full payment</p></div>
+          <div class="page-actions">
+            <button class="btn btn-light btn-sm pre-filter active" data-filter="all">All</button>
+            <button class="btn btn-light btn-sm pre-filter" data-filter="active">Active</button>
+            <button class="btn btn-light btn-sm pre-filter" data-filter="completed">Completed</button>
+            <button class="btn btn-light btn-sm pre-filter" data-filter="cancelled">Cancelled</button>
+            <button id="btn-add-preorder" class="btn btn-primary">+ New Pre-Order</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="table-wrap">
+            <table id="preorder-table" class="data-table"><thead><tr><th>Pre-Order #</th><th>Customer</th><th>Items</th><th>Total</th><th>Deposit</th><th>Balance</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody></table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ NEW ORDER ============ -->
       <section id="view-sale" class="view">
         <div class="page-header"><div><h1>New Order</h1><p class="breadcrumb">Create a new sale</p></div></div>
         <div class="pos-layout">
           <div class="pos-left">
             <div class="card">
               <div class="pos-search-wrap">
-                <input type="text" id="sale-search" class="pos-search" placeholder="Type product name and press Enter..." autocomplete="off">
+                <input type="text" id="sale-search" class="pos-search" placeholder="Scan barcode or type product name..." autocomplete="off">
                 <div id="autocomplete-box" class="autocomplete hidden"></div>
               </div>
               <div id="sale-product-list" class="product-grid"></div>
@@ -191,19 +411,22 @@
               <div class="cart-summary">
                 <div class="summary-row"><span>Subtotal</span><span id="cart-subtotal">UGX 0</span></div>
                 <div class="summary-row"><span>Tax (%)</span><input type="number" id="cart-tax" value="0" min="0" step="0.1"></div>
-                <div class="summary-row"><span>Discount (UGX)</span><input type="number" id="cart-discount" value="0" min="0" step="1"></div>
+                <div class="summary-row"><span>Discount (UGX)</span><input type="text" id="cart-discount" class="money-input" value="0"></div>
                 <div class="summary-row total"><span>This Order Total</span><span id="cart-total">UGX 0</span></div>
 
                 <div id="prev-balance-row" class="prev-balance-block hidden">
                   <div class="summary-row prev-bal"><span>Previous Outstanding</span><span id="cart-prev-balance">UGX 0</span></div>
-                  <div class="summary-row"><span>Pay on Previous (UGX)</span><input type="number" id="cart-pay-prev" value="0" min="0" step="1"></div>
+                  <div class="summary-row"><span>Pay on Previous (UGX)</span><input type="text" id="cart-pay-prev" class="money-input" value="0"></div>
                   <div class="summary-row grand-due"><span>Total Due Now</span><span id="cart-grand-due">UGX 0</span></div>
                 </div>
 
-                <div class="summary-row"><span>Amount Paid (UGX)</span><input type="number" id="cart-paid" value="0" min="0" step="1"></div>
+                <div class="summary-row"><span>Amount Paid (UGX)</span><input type="text" id="cart-paid" class="money-input" value="0"></div>
                 <div class="summary-row balance"><span>Remaining Balance</span><span id="cart-balance">UGX 0</span></div>
               </div>
               <label class="checkbox-row"><input type="checkbox" id="cart-taken"> Mark goods as <b>Taken</b> now</label>
+
+              <div id="credit-warning" class="credit-warning hidden"></div>
+
               <div class="customer-picker">
                 <label class="picker-label">Customer</label>
                 <div class="customer-row">
@@ -225,6 +448,7 @@
         </div>
       </section>
 
+      <!-- ============ ORDERS / RECEIPTS ============ -->
       <section id="view-orders" class="view">
         <div class="page-header">
           <div><h1>Orders / Receipts</h1><p class="breadcrumb">View and manage all orders</p></div>
@@ -248,6 +472,7 @@
         </div>
       </section>
 
+      <!-- ============ REPORTS ============ -->
       <section id="view-reports" class="view">
         <div class="page-header">
           <div><h1>Sales Reports</h1><p class="breadcrumb">Analyze your business performance</p></div>
@@ -295,6 +520,7 @@
         </div>
       </section>
 
+      <!-- ============ BACKUPS ============ -->
       <section id="view-backups" class="view">
         <div class="page-header">
           <div><h1>Backups & Restore</h1><p class="breadcrumb">Protect and recover your shop data</p></div>
@@ -310,15 +536,6 @@
           <div class="table-wrap">
             <table id="backups-table" class="data-table"><thead><tr><th>Date</th><th>File</th><th>Size</th><th>Location</th><th>Actions</th></tr></thead><tbody></tbody></table>
           </div>
-        </div>
-        <div class="card">
-          <div class="card-head"><span class="card-label">Automatic Backups</span></div>
-          <p style="color:var(--text-muted);font-size:13px;line-height:1.7;">
-            Windows Task Scheduler runs a backup every day at <b>20:40</b>. It saves to your
-            removable drive (<code>E:\OKK-Backups\</code>) and falls back to
-            <code>Documents\OKK-Backups\</code> if the drive is not connected.
-          </p>
-          <div style="margin-top:14px;"><button class="btn btn-light btn-sm" onclick="openBackupFolder('primary')">Open Backup Folder</button></div>
         </div>
         <div class="card">
           <div class="card-head"><span class="card-label">Thermal Receipt Printer</span></div>
